@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>文字コード比較ツール</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>文字コード比較ツール</h1>
+        <p>入力したテキストの文字コードを一覧表示し、左右で比較できます。</p>
+      </header>
+
+      <section class="grid">
+        <article>
+          <h2>テキスト A</h2>
+          <label for="text-a">入力</label>
+          <textarea id="text-a" rows="6" placeholder="例: こんにちは"></textarea>
+          <div class="meta">
+            <strong>文字数:</strong> <span id="count-a">0</span>
+          </div>
+          <div class="code-list" id="codes-a"></div>
+        </article>
+        <article>
+          <h2>テキスト B</h2>
+          <label for="text-b">入力</label>
+          <textarea id="text-b" rows="6" placeholder="例: こんばんは"></textarea>
+          <div class="meta">
+            <strong>文字数:</strong> <span id="count-b">0</span>
+          </div>
+          <div class="code-list" id="codes-b"></div>
+        </article>
+      </section>
+
+      <section>
+        <h2>比較結果</h2>
+        <p>同じ位置の文字コードを比較して、違いがある場所を表示します。</p>
+        <div class="comparison" id="comparison"></div>
+      </section>
+    </main>
+
+    <script>
+      const textA = document.getElementById('text-a');
+      const textB = document.getElementById('text-b');
+      const countA = document.getElementById('count-a');
+      const countB = document.getElementById('count-b');
+      const codesA = document.getElementById('codes-a');
+      const codesB = document.getElementById('codes-b');
+      const comparison = document.getElementById('comparison');
+
+      const toCodePoints = (text) => Array.from(text, (char) => {
+        const code = char.codePointAt(0);
+        return {
+          char,
+          code,
+          hex: `U+${code.toString(16).toUpperCase().padStart(4, '0')}`,
+        };
+      });
+
+      const renderCodeList = (target, list) => {
+        if (list.length === 0) {
+          target.innerHTML = '<em>まだ入力がありません。</em>';
+          return;
+        }
+
+        const items = list
+          .map(
+            (item, index) =>
+              `<li><strong>${index + 1}.</strong> 「${item.char}」 → ${item.hex} (${item.code})</li>`,
+          )
+          .join('');
+        target.innerHTML = `<ol>${items}</ol>`;
+      };
+
+      const renderComparison = (listA, listB) => {
+        if (listA.length === 0 && listB.length === 0) {
+          comparison.innerHTML = '<em>比較するテキストを入力してください。</em>';
+          return;
+        }
+
+        const maxLength = Math.max(listA.length, listB.length);
+        const rows = [];
+
+        for (let index = 0; index < maxLength; index += 1) {
+          const itemA = listA[index];
+          const itemB = listB[index];
+          const isSame = itemA && itemB && itemA.code === itemB.code;
+          const statusClass = isSame ? 'match' : 'diff';
+
+          rows.push(`
+            <tr class="${statusClass}">
+              <td>${index + 1}</td>
+              <td>${itemA ? `「${itemA.char}」<br /><small>${itemA.hex}</small>` : '<em>-</em>'}</td>
+              <td>${itemB ? `「${itemB.char}」<br /><small>${itemB.hex}</small>` : '<em>-</em>'}</td>
+              <td>${isSame ? '一致' : '不一致'}</td>
+            </tr>
+          `);
+        }
+
+        comparison.innerHTML = `
+          <figure>
+            <table role="grid">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>テキスト A</th>
+                  <th>テキスト B</th>
+                  <th>判定</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.join('')}
+              </tbody>
+            </table>
+          </figure>
+        `;
+      };
+
+      const update = () => {
+        const listA = toCodePoints(textA.value);
+        const listB = toCodePoints(textB.value);
+
+        countA.textContent = listA.length;
+        countB.textContent = listB.length;
+
+        renderCodeList(codesA, listA);
+        renderCodeList(codesB, listB);
+        renderComparison(listA, listB);
+      };
+
+      textA.addEventListener('input', update);
+      textB.addEventListener('input', update);
+
+      update();
+    </script>
+    <style>
+      header {
+        margin-bottom: 2rem;
+      }
+
+      .meta {
+        margin-top: 0.5rem;
+      }
+
+      .code-list {
+        margin-top: 1rem;
+      }
+
+      .comparison table {
+        margin-top: 1rem;
+      }
+
+      .comparison tr.match {
+        background: rgba(61, 213, 152, 0.15);
+      }
+
+      .comparison tr.diff {
+        background: rgba(235, 87, 87, 0.15);
+      }
+    </style>
+  </body>
+</html>
