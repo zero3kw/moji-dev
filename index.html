@@ -163,6 +163,25 @@
       margin-bottom: var(--pico-block-spacing-vertical);
     }
 
+    .history-header {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .history-reset-btn {
+      background: transparent;
+      border: none;
+      color: var(--pico-muted-color);
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+    }
+
+    .history-reset-btn:hover {
+      color: var(--pico-del-color);
+    }
+
     /* トグル */
     .compare-toggle {
       display: flex;
@@ -217,7 +236,10 @@
     </div>
 
     <section id="history-section" class="history-section" hidden>
-      <small>最近の検索:</small>
+      <div class="history-header">
+        <small>最近の検索</small>
+        <button id="history-reset" class="history-reset-btn" title="履歴をクリア"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+      </div>
       <ul class="char-list" id="history-list"></ul>
     </section>
 
@@ -258,6 +280,7 @@
     const candidatesLabel = document.getElementById('candidates-label');
     const historySection = document.getElementById('history-section');
     const historyList = document.getElementById('history-list');
+    const historyReset = document.getElementById('history-reset');
     const inputChar2 = document.getElementById('input-char2');
     const compareToggle = document.getElementById('compare-toggle');
     const compareVs = document.getElementById('compare-vs');
@@ -295,16 +318,17 @@
 
     const getHistory = () => {
       try {
-        return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+        const raw = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+        return raw.map((item) => typeof item === 'string' ? { char: item, mjName: null } : item);
       } catch {
         return [];
       }
     };
 
-    const addToHistory = (char) => {
+    const addToHistory = (char, mjName = null) => {
       if (!char || isMjName(char) || isReading(char)) return;
-      const history = getHistory().filter((c) => c !== char);
-      history.unshift(char);
+      const history = getHistory().filter((item) => item.char !== char);
+      history.unshift({ char, mjName });
       if (history.length > MAX_HISTORY) history.pop();
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
       renderHistory();
@@ -315,15 +339,27 @@
       historySection.hidden = history.length === 0;
       historyList.textContent = '';
 
-      for (const char of history) {
+      for (const { char, mjName } of history) {
         const li = document.createElement('li');
         li.className = 'char-item small';
-        li.innerHTML = `<span class="char">${char}</span>`;
+        const imgUrl = getMjImageUrl(mjName);
+        if (imgUrl) {
+          li.innerHTML = `<img src="${imgUrl}" alt="${mjName}" class="mj-img" style="height:1.5rem">`;
+        } else {
+          li.innerHTML = `<span class="char">${char}</span>`;
+        }
         li.title = char;
         li.addEventListener('click', () => setInputAndUpdate(char));
         historyList.appendChild(li);
       }
     };
+
+    const clearHistory = () => {
+      localStorage.removeItem(HISTORY_KEY);
+      renderHistory();
+    };
+
+    historyReset.addEventListener('click', clearHistory);
 
     let conn = null;
 
@@ -597,9 +633,14 @@
         const li = document.createElement('li');
         li.className = 'char-item';
         const displayChar = getDisplayChar(data);
-        const yomi = data['読み(参考)'] || '';
+        const mjName = data['MJ文字図形名'] || '';
+        const imgUrl = getMjImageUrl(mjName);
 
-        li.innerHTML = `<span class="char">${displayChar}</span><small>${yomi.split('・')[0]}</small>`;
+        if (imgUrl) {
+          li.innerHTML = `<img src="${imgUrl}" alt="${mjName}" class="mj-img" style="height:2rem"><small style="font-size:0.6rem;color:var(--pico-muted-color)">${mjName}</small>`;
+        } else {
+          li.innerHTML = `<span class="char">${displayChar}</span><small style="font-size:0.6rem;color:var(--pico-muted-color)">${mjName}</small>`;
+        }
         li.addEventListener('click', () => setInputAndUpdate(displayChar));
         candidatesList.appendChild(li);
       }
@@ -645,8 +686,10 @@
         mainEmpty.hidden = true;
         variantsSection.hidden = false;
         renderCompareTable(results1, results2, char1, char2, ucs1, ivs1, ucs2, ivs2);
-        addToHistory(char1);
-        addToHistory(char2);
+        const primary1 = results1.find((d) => isPrimaryResult(d, ucs1, ivs1, null)) || results1[0];
+        const primary2 = results2.find((d) => isPrimaryResult(d, ucs2, ivs2, null)) || results2[0];
+        addToHistory(char1, primary1?.['MJ文字図形名']);
+        addToHistory(char2, primary2?.['MJ文字図形名']);
         return;
       }
 
@@ -701,7 +744,8 @@
       mainEmpty.hidden = true;
       variantsSection.hidden = false;
       renderVariantsTable(results, char, ucs, ivs);
-      addToHistory(char);
+      const primary = results.find((d) => isPrimaryResult(d, ucs, ivs, null)) || results[0];
+      addToHistory(char, primary?.['MJ文字図形名']);
     };
 
     const renderCompareTable = (results1, results2, char1, char2, ucs1, ivs1, ucs2, ivs2) => {
