@@ -1,167 +1,826 @@
 <!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>文字コード比較ツール</title>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
-    />
-  </head>
-  <body>
-    <main class="container">
-      <header>
-        <h1>文字コード比較ツール</h1>
-        <p>入力したテキストの文字コードを一覧表示し、左右で比較できます。</p>
-      </header>
+<html lang="ja" data-theme="light">
 
-      <section class="grid">
-        <article>
-          <h2>テキスト A</h2>
-          <label for="text-a">入力</label>
-          <textarea id="text-a" rows="6" placeholder="例: こんにちは"></textarea>
-          <div class="meta">
-            <strong>文字数:</strong> <span id="count-a">0</span>
-          </div>
-          <div class="code-list" id="codes-a"></div>
-        </article>
-        <article>
-          <h2>テキスト B</h2>
-          <label for="text-b">入力</label>
-          <textarea id="text-b" rows="6" placeholder="例: こんばんは"></textarea>
-          <div class="meta">
-            <strong>文字数:</strong> <span id="count-b">0</span>
-          </div>
-          <div class="code-list" id="codes-b"></div>
-        </article>
-      </section>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MJ文字情報ビューア</title>
+  <!-- __GA_SCRIPT__ -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <style>
+    /* レイアウト */
+    header {
+      margin-bottom: var(--pico-block-spacing-vertical);
+    }
 
-      <section>
-        <h2>比較結果</h2>
-        <p>同じ位置の文字コードを比較して、違いがある場所を表示します。</p>
-        <div class="comparison" id="comparison"></div>
-      </section>
-    </main>
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--pico-spacing);
+    }
 
-    <script>
-      const textA = document.getElementById('text-a');
-      const textB = document.getElementById('text-b');
-      const countA = document.getElementById('count-a');
-      const countB = document.getElementById('count-b');
-      const codesA = document.getElementById('codes-a');
-      const codesB = document.getElementById('codes-b');
-      const comparison = document.getElementById('comparison');
+    .header-row h1 {
+      margin-bottom: 0;
+    }
 
-      const toCodePoints = (text) => Array.from(text, (char) => {
-        const code = char.codePointAt(0);
-        return {
-          char,
-          code,
-          hex: `U+${code.toString(16).toUpperCase().padStart(4, '0')}`,
-        };
-      });
+    .compare-inputs {
+      display: flex;
+      gap: var(--pico-spacing);
+      align-items: center;
+      margin-bottom: var(--pico-block-spacing-vertical);
+    }
 
-      const renderCodeList = (target, list) => {
-        if (list.length === 0) {
-          target.innerHTML = '<em>まだ入力がありません。</em>';
-          return;
-        }
+    .compare-inputs input[type="search"] {
+      font-size: 1.5rem;
+      max-width: 18rem;
+      margin-bottom: 0;
+    }
 
-        const items = list
-          .map(
-            (item, index) =>
-              `<li><strong>${index + 1}.</strong> 「${item.char}」 → ${item.hex} (${item.code})</li>`,
-          )
-          .join('');
-        target.innerHTML = `<ol>${items}</ol>`;
-      };
+    footer {
+      margin-top: calc(var(--pico-block-spacing-vertical) * 2);
+      padding-top: var(--pico-spacing);
+      border-top: 1px solid var(--pico-muted-border-color);
+    }
 
-      const renderComparison = (listA, listB) => {
-        if (listA.length === 0 && listB.length === 0) {
-          comparison.innerHTML = '<em>比較するテキストを入力してください。</em>';
-          return;
-        }
+    /* テーブル */
+    .compare-table {
+      font-size: 0.875rem;
+    }
 
-        const maxLength = Math.max(listA.length, listB.length);
-        const rows = [];
+    .compare-table th:first-child {
+      text-align: left;
+      font-weight: normal;
+      color: var(--pico-muted-color);
+      min-width: 140px;
+      position: sticky;
+      left: 0;
+      background: var(--pico-card-background-color);
+    }
 
-        for (let index = 0; index < maxLength; index += 1) {
-          const itemA = listA[index];
-          const itemB = listB[index];
-          const isSame = itemA && itemB && itemA.code === itemB.code;
-          const statusClass = isSame ? 'match' : 'diff';
+    .compare-table th:not(:first-child) {
+      text-align: center;
+      min-width: 100px;
+    }
 
-          rows.push(`
-            <tr class="${statusClass}">
-              <td>${index + 1}</td>
-              <td>${itemA ? `「${itemA.char}」<br /><small>${itemA.hex}</small>` : '<em>-</em>'}</td>
-              <td>${itemB ? `「${itemB.char}」<br /><small>${itemB.hex}</small>` : '<em>-</em>'}</td>
-              <td>${isSame ? '一致' : '不一致'}</td>
-            </tr>
-          `);
-        }
+    .compare-table td {
+      font-family: monospace;
+      text-align: center;
+    }
 
-        comparison.innerHTML = `
-          <figure>
-            <table role="grid">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>テキスト A</th>
-                  <th>テキスト B</th>
-                  <th>判定</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows.join('')}
-              </tbody>
-            </table>
-          </figure>
-        `;
-      };
+    .compare-table td.match {
+      background: color-mix(in srgb, var(--pico-ins-color) 10%, transparent);
+    }
 
-      const update = () => {
-        const listA = toCodePoints(textA.value);
-        const listB = toCodePoints(textB.value);
+    .compare-table td.diff {
+      background: color-mix(in srgb, var(--pico-del-color) 10%, transparent);
+    }
 
-        countA.textContent = listA.length;
-        countB.textContent = listB.length;
+    .compare-table thead th {
+      vertical-align: bottom;
+    }
 
-        renderCodeList(codesA, listA);
-        renderCodeList(codesB, listB);
-        renderComparison(listA, listB);
-      };
+    /* MJ画像 */
+    .mj-img {
+      background: white;
+      border-radius: var(--pico-border-radius);
+      padding: 0.25rem;
+    }
 
-      textA.addEventListener('input', update);
-      textB.addEventListener('input', update);
+    .mj-img-primary {
+      outline: 3px solid var(--pico-primary);
+      outline-offset: 2px;
+      box-shadow: 0 0 8px var(--pico-primary);
+    }
 
+    /* Copyボタン */
+    .copy-btn {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      margin-top: 0.25rem;
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: var(--pico-border-radius);
+      background: transparent;
+      color: var(--pico-muted-color);
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--pico-primary);
+      color: var(--pico-primary);
+    }
+
+    .copy-btn.copied {
+      border-color: var(--pico-ins-color);
+      color: var(--pico-ins-color);
+    }
+
+    /* リスト共通 */
+    .char-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .char-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.5rem;
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: var(--pico-border-radius);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      min-width: 4rem;
+    }
+
+    .char-item:hover {
+      border-color: var(--pico-primary);
+      background: color-mix(in srgb, var(--pico-primary) 5%, transparent);
+    }
+
+    .char-item.small {
+      min-width: 2.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      justify-content: center;
+    }
+
+    .char-item .char {
+      font-size: 1.5rem;
+    }
+
+    .char-item.small .char {
+      font-size: 1.25rem;
+    }
+
+    /* セクション */
+    .history-section,
+    .candidates-section {
+      margin-bottom: var(--pico-block-spacing-vertical);
+    }
+
+    /* トグル */
+    .compare-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--pico-muted-color);
+      cursor: pointer;
+      margin-bottom: 0;
+    }
+
+    .compare-toggle input[type="checkbox"] {
+      margin: 0;
+    }
+
+    /* 空状態・その他 */
+    #main-empty {
+      color: var(--pico-muted-color);
+      font-style: italic;
+    }
+
+    .compare-vs {
+      font-size: 1.25rem;
+      color: var(--pico-muted-color);
+    }
+
+    .clickable-ucs {
+      cursor: pointer;
+      color: var(--pico-primary);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <header>
+      <div class="header-row">
+        <h1>MJ文字情報ビューア</h1>
+        <label class="compare-toggle">
+          <input type="checkbox" id="compare-toggle" role="switch">
+          比較モード
+        </label>
+      </div>
+      <p id="db-status" aria-busy="true">MJ文字情報を読み込み中...</p>
+    </header>
+
+    <div class="compare-inputs">
+      <input type="search" id="input-char" maxlength="10" placeholder="文字 / MJ番号 / 読み" autofocus />
+      <span id="compare-vs" class="compare-vs" hidden>vs</span>
+      <input type="search" id="input-char2" maxlength="10" placeholder="比較する文字" hidden />
+    </div>
+
+    <section id="history-section" class="history-section" hidden>
+      <small>最近の検索:</small>
+      <ul class="char-list" id="history-list"></ul>
+    </section>
+
+    <section id="candidates-section" class="candidates-section" hidden>
+      <small id="candidates-label">読み検索結果:</small>
+      <ul class="char-list" id="candidates-list"></ul>
+    </section>
+
+    <section id="main-section">
+      <p id="main-empty">文字を入力してください</p>
+      <figure id="variants-section" hidden>
+        <table class="compare-table">
+          <thead id="variants-header"></thead>
+          <tbody id="variants-body"></tbody>
+        </table>
+      </figure>
+    </section>
+
+  </main>
+
+  <footer class="container">
+    <small>
+      本ツールは<a href="https://moji.or.jp/mojikiban/mjlist/" target="_blank" rel="noopener">MJ文字情報一覧表 Ver.006.02
+      </a>（IPA）を利用しています。
+    </small>
+  </footer>
+
+  <script type="module">
+    import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
+
+    const inputChar = document.getElementById('input-char');
+    const mainEmpty = document.getElementById('main-empty');
+    const variantsSection = document.getElementById('variants-section');
+    const variantsHeader = document.getElementById('variants-header');
+    const variantsBody = document.getElementById('variants-body');
+    const candidatesSection = document.getElementById('candidates-section');
+    const candidatesList = document.getElementById('candidates-list');
+    const candidatesLabel = document.getElementById('candidates-label');
+    const historySection = document.getElementById('history-section');
+    const historyList = document.getElementById('history-list');
+    const inputChar2 = document.getElementById('input-char2');
+    const compareToggle = document.getElementById('compare-toggle');
+    const compareVs = document.getElementById('compare-vs');
+
+    let compareMode = false;
+    let lastFocusedInput = inputChar;
+
+    inputChar.addEventListener('focus', () => lastFocusedInput = inputChar);
+    inputChar2.addEventListener('focus', () => lastFocusedInput = inputChar2);
+
+    const getTargetInput = () => compareMode && lastFocusedInput === inputChar2 ? inputChar2 : inputChar;
+
+    const showEmpty = (message) => {
+      mainEmpty.hidden = false;
+      mainEmpty.textContent = message;
+    };
+
+    const clearTable = () => {
+      variantsHeader.textContent = '';
+      variantsBody.textContent = '';
+    };
+
+    const setInputAndUpdate = (value) => {
+      getTargetInput().value = value;
+      updateUrl(inputChar.value, inputChar2.value);
       update();
-    </script>
-    <style>
-      header {
-        margin-bottom: 2rem;
+    };
+
+    const HISTORY_KEY = 'mj-viewer-history';
+    const MAX_HISTORY = 20;
+
+    // アイコン
+    const ICON_COPY = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
+    const ICON_CHECK = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+
+    const getHistory = () => {
+      try {
+        return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+      } catch {
+        return [];
+      }
+    };
+
+    const addToHistory = (char) => {
+      if (!char || isMjName(char) || isReading(char)) return;
+      const history = getHistory().filter((c) => c !== char);
+      history.unshift(char);
+      if (history.length > MAX_HISTORY) history.pop();
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      renderHistory();
+    };
+
+    const renderHistory = () => {
+      const history = getHistory();
+      historySection.hidden = history.length === 0;
+      historyList.textContent = '';
+
+      for (const char of history) {
+        const li = document.createElement('li');
+        li.className = 'char-item small';
+        li.innerHTML = `<span class="char">${char}</span>`;
+        li.title = char;
+        li.addEventListener('click', () => setInputAndUpdate(char));
+        historyList.appendChild(li);
+      }
+    };
+
+    let conn = null;
+
+    const MJ_FIELDS = [
+      { key: 'MJ文字図形名', label: 'MJ文字図形名' },
+      { key: '対応するUCS', label: '対応するUCS' },
+      { key: 'UnicodeBlock', label: 'Unicodeブロック', computed: true },
+      { key: '実装したUCS', label: '実装したUCS' },
+      { key: '実装したMoji_JohoコレクションIVS', label: '実装したIVS' },
+      { key: 'X0213', label: 'JIS X 0213' },
+      { key: 'X0213_level', label: 'JIS X 0213 水準', computed: true },
+      { key: 'X0213 包摂区分', label: 'JIS X 0213 包摂区分' },
+      { key: 'X0213 包摂連番', label: 'JIS X 0213 包摂連番' },
+      { key: 'X0212', label: 'JIS X 0212' },
+      { key: '戸籍統一文字番号', label: '戸籍統一文字番号' },
+      { key: '住基ネット統一文字コード', label: '住基ネット統一文字コード' },
+      { key: '入管正字コード', label: '入管正字コード' },
+      { key: '漢字施策', label: '漢字施策' },
+      { key: '対応する互換漢字', label: '対応する互換漢字' },
+      { key: '総画数(参考)', label: '総画数' },
+      { key: '部首1(参考)', label: '部首' },
+      { key: '内画数1(参考)', label: '内画数' },
+      { key: '読み(参考)', label: '読み' },
+    ];
+
+    const calcJisLevel = (x0213) => {
+      if (!x0213) return '';
+      const match = x0213.match(/^(\d)-(\d+)-(\d+)$/);
+      if (!match) return '';
+
+      const [, men, ku] = match.map(Number);
+
+      if (men === 1) {
+        if (ku >= 1 && ku <= 8) return '非漢字';
+        if (ku >= 16 && ku <= 47) return '1';
+        if (ku >= 48 && ku <= 84) return '2';
+        return '3';
+      }
+      if (men === 2) return '4';
+      return '';
+    };
+
+    const getUnicodeBlock = (ucs) => {
+      if (!ucs) return '';
+      const code = parseInt(ucs.replace('U+', ''), 16);
+      if (isNaN(code)) return '';
+
+      // CJK関連のUnicodeブロック
+      if (code >= 0x4E00 && code <= 0x9FFF) return 'CJK統合漢字';
+      if (code >= 0x3400 && code <= 0x4DBF) return 'CJK統合漢字拡張A';
+      if (code >= 0x20000 && code <= 0x2A6DF) return 'CJK統合漢字拡張B';
+      if (code >= 0x2A700 && code <= 0x2B73F) return 'CJK統合漢字拡張C';
+      if (code >= 0x2B740 && code <= 0x2B81F) return 'CJK統合漢字拡張D';
+      if (code >= 0x2B820 && code <= 0x2CEAF) return 'CJK統合漢字拡張E';
+      if (code >= 0x2CEB0 && code <= 0x2EBEF) return 'CJK統合漢字拡張F';
+      if (code >= 0x30000 && code <= 0x3134F) return 'CJK統合漢字拡張G';
+      if (code >= 0x31350 && code <= 0x323AF) return 'CJK統合漢字拡張H';
+      if (code >= 0xF900 && code <= 0xFAFF) return 'CJK互換漢字';
+      if (code >= 0x2F800 && code <= 0x2FA1F) return 'CJK互換漢字補助';
+      if (code >= 0x2F00 && code <= 0x2FDF) return '康煕部首';
+      if (code >= 0x2E80 && code <= 0x2EFF) return 'CJK部首補助';
+      if (code >= 0x3000 && code <= 0x303F) return 'CJK記号・句読点';
+
+      return '';
+    };
+
+    // 共通ヘルパー
+    const SQL_COLUMNS = MJ_FIELDS.filter((f) => !f.computed).map((f) => `"${f.key}"`).join(', ');
+    const ucsToChar = (ucs) => ucs ? String.fromCodePoint(parseInt(ucs.replace('U+', ''), 16)) : null;
+    const getDisplayChar = (data, fallback = '?') => ucsToChar(data['実装したUCS'] || data['対応するUCS']) || fallback;
+    const formatValue = (v) => (v === '' || v == null) ? '-' : v;
+    const mapQueryResult = (result) => result.toArray().map((row) => {
+      const data = {};
+      for (const field of MJ_FIELDS) {
+        if (!field.computed) data[field.key] = row[field.key];
+      }
+      data.font = row.font;
+      data['X0213_level'] = calcJisLevel(data['X0213']);
+      data['UnicodeBlock'] = getUnicodeBlock(data['対応するUCS']);
+      return data;
+    });
+
+    const initDuckDB = async () => {
+      const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+      const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+
+      const workerUrl = URL.createObjectURL(
+        new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
+      );
+
+      const worker = new Worker(workerUrl);
+      const logger = new duckdb.ConsoleLogger();
+      const db = new duckdb.AsyncDuckDB(logger, worker);
+      await db.instantiate(bundle.mainModule);
+      URL.revokeObjectURL(workerUrl);
+      conn = await db.connect();
+
+      const csvResponse = await fetch('mji.00602.csv');
+      const csvBuffer = await csvResponse.arrayBuffer();
+      await db.registerFileBuffer('mji.csv', new Uint8Array(csvBuffer));
+
+      await conn.query(`
+          CREATE TABLE mji AS
+          SELECT * FROM read_csv_auto('mji.csv')
+        `);
+
+      console.log('DuckDB initialized');
+    };
+
+    const parseInput = (input) => {
+      const chars = Array.from(input);
+      if (!chars.length) return { ucs: null, ivs: null };
+
+      const base = chars[0].codePointAt(0);
+      const ucs = `U+${base.toString(16).toUpperCase().padStart(4, '0')}`;
+
+      // IVS: 2文字目が異体字セレクタ (U+E0100〜U+E01EF) の場合
+      if (chars.length >= 2) {
+        const vs = chars[1].codePointAt(0);
+        if (vs >= 0xE0100 && vs <= 0xE01EF) {
+          const ivs = `${base.toString(16).toUpperCase()}_${vs.toString(16).toUpperCase()}`;
+          return { ucs, ivs };
+        }
       }
 
-      .meta {
-        margin-top: 0.5rem;
+      return { ucs, ivs: null };
+    };
+
+    const queryByUcs = async (ucs, ivs = null) => {
+      if (!conn || !ucs) return [];
+      const ivsCondition = ivs ? ` OR "実装したMoji_JohoコレクションIVS" = '${ivs}'` : '';
+      const result = await conn.query(`
+          SELECT ${SQL_COLUMNS}, font FROM mji
+          WHERE "対応するUCS" IN (
+            SELECT "対応するUCS" FROM mji
+            WHERE "対応するUCS" = '${ucs}' OR "実装したUCS" = '${ucs}'${ivsCondition}
+          )
+        `);
+      return mapQueryResult(result);
+    };
+
+    const queryByMjName = async (mjName) => {
+      if (!conn || !mjName) return [];
+      const result = await conn.query(`
+          SELECT ${SQL_COLUMNS}, font FROM mji
+          WHERE "対応するUCS" IN (
+            SELECT "対応するUCS" FROM mji WHERE "MJ文字図形名" = '${mjName}'
+          )
+        `);
+      return mapQueryResult(result);
+    };
+
+    const isMjName = (input) => /^MJ\d{6}$/i.test(input.trim());
+    const isReading = (input) => /^[\u3040-\u309F\u30A0-\u30FF]+$/.test(input.trim());
+
+    const queryByReading = async (reading) => {
+      if (!conn || !reading) return [];
+      const hiragana = reading.replace(/[\u30A0-\u30FF]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+      const katakana = reading.replace(/[\u3040-\u309F]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+      const result = await conn.query(`
+          SELECT DISTINCT ${SQL_COLUMNS}, font FROM mji
+          WHERE "読み(参考)" LIKE '${hiragana}%' OR "読み(参考)" LIKE '${katakana}%'
+             OR "読み(参考)" LIKE '%・${hiragana}%' OR "読み(参考)" LIKE '%・${katakana}%'
+          LIMIT 50
+        `);
+      return mapQueryResult(result);
+    };
+
+    const getMjImageUrl = (mjName) => {
+      if (!mjName) return null;
+      return `https://moji.or.jp/mojikibansearch/img/MJ/${mjName}.png`;
+    };
+
+    const copyToClipboard = async (text, btn) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.innerHTML = ICON_CHECK;
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerHTML = ICON_COPY;
+          btn.classList.remove('copied');
+        }, 1500);
+      } catch (err) {
+        console.error('Copy failed:', err);
+      }
+    };
+
+    const getCopyChar = (data, fallback) => {
+      const ivs = data['実装したMoji_JohoコレクションIVS'];
+      if (ivs) {
+        const [baseHex, vsHex] = ivs.split('_');
+        return String.fromCodePoint(parseInt(baseHex, 16), parseInt(vsHex, 16));
+      }
+      return getDisplayChar(data, fallback);
+    };
+
+    const isPrimaryResult = (data, inputUcs, inputIvs, inputMjName) =>
+      inputMjName ? data['MJ文字図形名'] === inputMjName
+        : inputIvs ? data['実装したMoji_JohoコレクションIVS'] === inputIvs
+          : data['実装したUCS'] === inputUcs;
+
+    const createClickableUcs = (value) => {
+      const span = document.createElement('span');
+      span.className = 'clickable-ucs';
+      span.textContent = value;
+      span.addEventListener('click', () => setInputAndUpdate(ucsToChar(value)));
+      return span;
+    };
+
+    const createHeaderCellHtml = (mjName, imgUrl, displayChar, isPrimary = false) => {
+      if (imgUrl) {
+        const imgClass = isPrimary ? 'mj-img mj-img-primary' : 'mj-img';
+        return `<img src="${imgUrl}" alt="${mjName}" class="${imgClass}" style="height:2.5rem;vertical-align:middle;"><div style="font-size:0.7rem">${mjName}</div>`;
+      }
+      return `<div style="font-size:1.5rem">${displayChar}</div><div style="font-size:0.7rem">${mjName || ''}</div>`;
+    };
+
+    const renderVariantsTable = (results, char, inputUcs, inputIvs = null, inputMjName = null) => {
+      clearTable();
+
+      const headerRow = document.createElement('tr');
+      headerRow.innerHTML = '<th>項目</th>';
+
+      for (const data of results) {
+        const th = document.createElement('th');
+        const mjName = data['MJ文字図形名'];
+        const isPrimary = isPrimaryResult(data, inputUcs, inputIvs, inputMjName);
+        const displayChar = getDisplayChar(data, char);
+        th.innerHTML = createHeaderCellHtml(mjName, getMjImageUrl(mjName), displayChar, isPrimary);
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.innerHTML = ICON_COPY;
+        copyBtn.addEventListener('click', () => copyToClipboard(getCopyChar(data, char), copyBtn));
+        th.appendChild(copyBtn);
+        headerRow.appendChild(th);
+      }
+      variantsHeader.appendChild(headerRow);
+
+      const primaryIndex = results.findIndex((d) => isPrimaryResult(d, inputUcs, inputIvs, inputMjName));
+      const clickableFields = ['対応する互換漢字', '対応するUCS', '実装したUCS'];
+
+      for (const field of MJ_FIELDS) {
+        const values = results.map((d) => formatValue(d[field.key]));
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<th>${field.label}</th>`;
+
+        const primaryValue = primaryIndex >= 0 ? values[primaryIndex] : null;
+
+        for (const value of values) {
+          const td = document.createElement('td');
+          if (clickableFields.includes(field.key) && value !== '-' && value.startsWith('U+')) {
+            td.appendChild(createClickableUcs(value));
+          } else {
+            td.textContent = value;
+          }
+          if (results.length > 1 && primaryValue !== null) {
+            td.classList.add(value === primaryValue ? 'match' : 'diff');
+          }
+          tr.appendChild(td);
+        }
+        variantsBody.appendChild(tr);
+      }
+    };
+
+    const renderCandidates = (results, reading) => {
+      candidatesList.textContent = '';
+      candidatesLabel.textContent = `「${reading}」の検索結果 (${results.length}件):`;
+
+      const seen = new Set();
+      for (const data of results) {
+        const ucs = data['対応するUCS'];
+        if (seen.has(ucs)) continue;
+        seen.add(ucs);
+
+        const li = document.createElement('li');
+        li.className = 'char-item';
+        const displayChar = getDisplayChar(data);
+        const yomi = data['読み(参考)'] || '';
+
+        li.innerHTML = `<span class="char">${displayChar}</span><small>${yomi.split('・')[0]}</small>`;
+        li.addEventListener('click', () => setInputAndUpdate(displayChar));
+        candidatesList.appendChild(li);
+      }
+    };
+
+    const update = async () => {
+      const input = inputChar.value.trim();
+      const input2 = inputChar2.value.trim();
+
+      variantsSection.hidden = true;
+      candidatesSection.hidden = true;
+
+      // 比較モードの処理
+      if (compareMode) {
+        if (!input && !input2) {
+          return showEmpty('比較する文字を入力してください');
+        }
+
+        if (!input || !input2) {
+          return showEmpty(input ? '比較する2つ目の文字を入力してください' : '比較する1つ目の文字を入力してください');
+        }
+
+        // 両方の文字を検索
+        const { ucs: ucs1, ivs: ivs1 } = parseInput(input);
+        const { ucs: ucs2, ivs: ivs2 } = parseInput(input2);
+        const char1 = Array.from(input)[0] || '';
+        const char2 = Array.from(input2)[0] || '';
+
+        const [results1, results2] = await Promise.all([
+          queryByUcs(ucs1, ivs1),
+          queryByUcs(ucs2, ivs2)
+        ]);
+
+        if (results1.length === 0 || results2.length === 0) {
+          const msg = results1.length === 0 && results2.length === 0
+            ? '両方の文字がMJデータに見つかりません'
+            : results1.length === 0
+              ? `${char1} (${ucs1}) はMJデータに見つかりません`
+              : `${char2} (${ucs2}) はMJデータに見つかりません`;
+          return showEmpty(msg);
+        }
+
+        mainEmpty.hidden = true;
+        variantsSection.hidden = false;
+        renderCompareTable(results1, results2, char1, char2, ucs1, ivs1, ucs2, ivs2);
+        addToHistory(char1);
+        addToHistory(char2);
+        return;
       }
 
-      .code-list {
-        margin-top: 1rem;
+      if (!input) {
+        return showEmpty('文字を入力してください');
       }
 
-      .comparison table {
-        margin-top: 1rem;
+      // MJ文字図形名での検索
+      if (isMjName(input)) {
+        const mjName = input.toUpperCase();
+        const results = await queryByMjName(mjName);
+
+        if (results.length === 0) {
+          return showEmpty(`${mjName} はMJデータに見つかりません`);
+        }
+
+        mainEmpty.hidden = true;
+        variantsSection.hidden = false;
+        renderVariantsTable(results, null, null, null, mjName);
+        return;
       }
 
-      .comparison tr.match {
-        background: rgba(61, 213, 152, 0.15);
+      // 読みでの検索
+      if (isReading(input)) {
+        const results = await queryByReading(input);
+
+        if (results.length === 0) {
+          return showEmpty(`「${input}」に該当する文字が見つかりません`);
+        }
+
+        mainEmpty.hidden = true;
+        candidatesSection.hidden = false;
+        renderCandidates(results, input);
+        return;
       }
 
-      .comparison tr.diff {
-        background: rgba(235, 87, 87, 0.15);
+      // 文字での検索
+      const { ucs, ivs } = parseInput(input);
+      const chars = Array.from(input);
+      const char = chars[0] || '';
+
+      if (!char || !ucs) {
+        return showEmpty('文字を入力してください');
       }
-    </style>
-  </body>
+
+      const results = await queryByUcs(ucs, ivs);
+
+      if (results.length === 0) {
+        return showEmpty(`${char} (${ucs}) はMJデータに見つかりません`);
+      }
+
+      mainEmpty.hidden = true;
+      variantsSection.hidden = false;
+      renderVariantsTable(results, char, ucs, ivs);
+      addToHistory(char);
+    };
+
+    const renderCompareTable = (results1, results2, char1, char2, ucs1, ivs1, ucs2, ivs2) => {
+      clearTable();
+
+      // IVSまたはUCSにマッチするバリアントを探す
+      const findPrimary = (results, ucs, ivs) => {
+        if (ivs) {
+          const match = results.find(d => d['実装したMoji_JohoコレクションIVS'] === ivs);
+          if (match) return match;
+        }
+        return results.find(d => d['実装したUCS'] === ucs) || results[0];
+      };
+
+      const data1 = findPrimary(results1, ucs1, ivs1);
+      const data2 = findPrimary(results2, ucs2, ivs2);
+      const headerRow = document.createElement('tr');
+      headerRow.innerHTML = '<th>項目</th>';
+
+      for (const [data, char] of [[data1, char1], [data2, char2]]) {
+        const th = document.createElement('th');
+        const mjName = data['MJ文字図形名'];
+        th.innerHTML = createHeaderCellHtml(mjName, getMjImageUrl(mjName), getDisplayChar(data, char));
+        headerRow.appendChild(th);
+      }
+      variantsHeader.appendChild(headerRow);
+
+      for (const field of MJ_FIELDS) {
+        const [val1, val2] = [formatValue(data1[field.key]), formatValue(data2[field.key])];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<th>${field.label}</th>`;
+
+        for (const val of [val1, val2]) {
+          const td = document.createElement('td');
+          td.textContent = val;
+          td.classList.add(val1 === val2 ? 'match' : 'diff');
+          tr.appendChild(td);
+        }
+        variantsBody.appendChild(tr);
+      }
+    };
+
+    const updateUrl = (char, char2 = null) => {
+      const url = new URL(location.href);
+      if (char) {
+        url.searchParams.set('q', char);
+      } else {
+        url.searchParams.delete('q');
+      }
+      if (compareMode && char2) {
+        url.searchParams.set('q2', char2);
+      } else {
+        url.searchParams.delete('q2');
+      }
+      history.replaceState(null, '', url);
+    };
+
+    const toggleCompareMode = () => {
+      compareMode = compareToggle.checked;
+      inputChar2.hidden = !compareMode;
+      compareVs.hidden = !compareMode;
+      if (!compareMode) {
+        inputChar2.value = '';
+        updateUrl(inputChar.value, null);
+      }
+      update();
+    };
+
+    compareToggle.addEventListener('change', toggleCompareMode);
+
+    const getUrlValue = (input) => {
+      const { ivs } = parseInput(input);
+      const chars = Array.from(input);
+      return ivs ? chars.slice(0, 2).join('') : (chars[0] || '');
+    };
+
+    const handleInput = () => {
+      updateUrl(getUrlValue(inputChar.value), getUrlValue(inputChar2.value));
+      update();
+    };
+
+    inputChar.addEventListener('input', handleInput);
+    inputChar2.addEventListener('input', handleInput);
+
+    const dbStatus = document.getElementById('db-status');
+
+    renderHistory();
+
+    initDuckDB()
+      .then(() => {
+        dbStatus.removeAttribute('aria-busy');
+        dbStatus.textContent = 'MJ文字情報（約6万文字）を読み込みました';
+
+        const params = new URLSearchParams(location.search);
+        const q = params.get('q');
+        const q2 = params.get('q2');
+        if (q) {
+          inputChar.value = q;
+        }
+        if (q2) {
+          inputChar2.value = q2;
+          compareToggle.checked = true;
+          compareMode = true;
+          inputChar2.hidden = false;
+          compareVs.hidden = false;
+        }
+        update();
+      })
+      .catch((err) => {
+        console.error('DuckDB init failed:', err);
+        dbStatus.removeAttribute('aria-busy');
+        dbStatus.textContent = 'MJデータの読み込みに失敗しました: ' + err.message;
+      });
+  </script>
+</body>
+
 </html>
