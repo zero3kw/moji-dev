@@ -591,7 +591,6 @@
 
     const renderCandidates = (results, reading) => {
       candidatesList.textContent = '';
-      candidatesLabel.textContent = `「${reading}」の検索結果 (${results.length}件):`;
 
       const seen = new Set();
       for (const data of results) {
@@ -608,6 +607,7 @@
         li.addEventListener('click', () => setInputAndUpdate(displayChar));
         candidatesList.appendChild(li);
       }
+      candidatesLabel.textContent = `「${reading}」の検索結果 (${seen.size}件):`;
     };
 
     const update = async () => {
