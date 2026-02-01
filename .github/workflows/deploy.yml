@@ -28,6 +28,7 @@ jobs:
         if: ${{ vars.GA_MEASUREMENT_ID != '' }}
         run: |
           perl -i -pe 's/<!-- __GA_SCRIPT__ -->/<script async src="https:\/\/www.googletagmanager.com\/gtag\/js?id=${{ vars.GA_MEASUREMENT_ID }}"><\/script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","${{ vars.GA_MEASUREMENT_ID }}");<\/script>/g' index.html
+          perl -i -pe 's/<!-- __GA_PRIVACY__ -->/<small>本サイトは<a href="https:\/\/marketingplatform.google.com\/about\/analytics\/terms\/jp\/" target="_blank" rel="noopener">Google Analytics<\/a>を使用しています。<\/small>/g' index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

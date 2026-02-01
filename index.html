@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MJ文字情報ビューア</title>
+  <title>文字情報基盤比較システム</title>
   <!-- __GA_SCRIPT__ -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
   <style>
@@ -238,7 +238,12 @@
     <section id="history-section" class="history-section" hidden>
       <div class="history-header">
         <small>最近の検索</small>
-        <button id="history-reset" class="history-reset-btn" title="履歴をクリア"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+        <button id="history-reset" class="history-reset-btn" title="履歴をクリア"><svg width="12" height="12"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg></button>
       </div>
       <ul class="char-list" id="history-list"></ul>
     </section>
@@ -265,6 +270,7 @@
       本ツールは<a href="https://moji.or.jp/mojikiban/mjlist/" target="_blank" rel="noopener">MJ文字情報一覧表 Ver.006.02
       </a>（IPA）を利用しています。
     </small>
+    <!-- __GA_PRIVACY__ -->
   </footer>
 
   <script type="module">
@@ -315,6 +321,13 @@
     // アイコン
     const ICON_COPY = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
     const ICON_CHECK = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+
+    // GA4 event
+    const trackSearch = (searchTerm) => {
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'search', { search_term: searchTerm });
+      }
+    };
 
     const getHistory = () => {
       try {
@@ -690,6 +703,7 @@
         const primary2 = results2.find((d) => isPrimaryResult(d, ucs2, ivs2, null)) || results2[0];
         addToHistory(char1, primary1?.['MJ文字図形名']);
         addToHistory(char2, primary2?.['MJ文字図形名']);
+        trackSearch(`${char1} vs ${char2}`);
         return;
       }
 
@@ -709,6 +723,7 @@
         mainEmpty.hidden = true;
         variantsSection.hidden = false;
         renderVariantsTable(results, null, null, null, mjName);
+        trackSearch(mjName);
         return;
       }
 
@@ -723,6 +738,7 @@
         mainEmpty.hidden = true;
         candidatesSection.hidden = false;
         renderCandidates(results, input);
+        trackSearch(input);
         return;
       }
 
@@ -746,6 +762,7 @@
       renderVariantsTable(results, char, ucs, ivs);
       const primary = results.find((d) => isPrimaryResult(d, ucs, ivs, null)) || results[0];
       addToHistory(char, primary?.['MJ文字図形名']);
+      trackSearch(char);
     };
 
     const renderCompareTable = (results1, results2, char1, char2, ucs1, ivs1, ucs2, ivs2) => {
