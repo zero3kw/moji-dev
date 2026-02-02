@@ -7,6 +7,7 @@
   <title>文字情報基盤比較システム</title>
   <!-- __GA_SCRIPT__ -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <style>
     /* レイアウト */
     header {
@@ -159,7 +160,8 @@
 
     /* セクション */
     .history-section,
-    .candidates-section {
+    .candidates-section,
+    .related-section {
       margin-bottom: var(--pico-block-spacing-vertical);
     }
 
@@ -213,6 +215,25 @@
       color: var(--pico-primary);
       text-decoration: underline;
     }
+
+    .network-graph {
+      margin-top: 0.5rem;
+      width: 100%;
+      border-radius: var(--pico-border-radius);
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .network-tooltip {
+      position: fixed;
+      padding: 0.4rem 0.6rem;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      pointer-events: none;
+      z-index: 1000;
+      white-space: nowrap;
+    }
   </style>
 </head>
 
@@ -220,7 +241,7 @@
   <main class="container">
     <header>
       <div class="header-row">
-        <h1>MJ文字情報ビューア</h1>
+        <h1>文字情報基盤比較システム</h1>
         <label class="compare-toggle">
           <input type="checkbox" id="compare-toggle" role="switch">
           比較モード
@@ -263,12 +284,17 @@
       </figure>
     </section>
 
+    <section id="related-section" class="related-section" hidden>
+      <small>関連する文字</small>
+      <div id="network-graph" class="network-graph"></div>
+    </section>
+
   </main>
 
   <footer class="container">
     <small>
-      本ツールは<a href="https://moji.or.jp/mojikiban/mjlist/" target="_blank" rel="noopener">MJ文字情報一覧表 Ver.006.02
-      </a>（IPA）を利用しています。
+      本ツールは<a href="https://moji.or.jp/mojikiban/mjlist/" target="_blank" rel="noopener">MJ文字情報一覧表 Ver.006.02</a>および<a
+        href="https://moji.or.jp/mojikiban/map/" target="_blank" rel="noopener">MJ縮退マップ Ver.1.2.0</a>（IPA）を利用しています。
     </small>
     <!-- __GA_PRIVACY__ -->
   </footer>
@@ -290,6 +316,7 @@
     const inputChar2 = document.getElementById('input-char2');
     const compareToggle = document.getElementById('compare-toggle');
     const compareVs = document.getElementById('compare-vs');
+    const relatedSection = document.getElementById('related-section');
 
     let compareMode = false;
     let lastFocusedInput = inputChar;
@@ -375,6 +402,61 @@
     historyReset.addEventListener('click', clearHistory);
 
     let conn = null;
+    let shrinkMap = null;
+    let ucsToMjNames = null;
+
+    // 縮退マップのフィールド定義（key: JSONキー, label: 表示ラベル, color: エッジ色）
+    const SHRINK_FIELDS = [
+      { key: 'JIS包摂規準・UCS統合規則', label: 'JIS包摂', color: '#64b5f6' },
+      { key: '辞書類等による関連字', label: '辞書類', color: '#81c784' },
+      { key: '法務省告示582号別表第四', label: '告示', color: '#ffb74d' },
+      { key: '法務省戸籍法関連通達・通知', label: '戸籍法', color: '#ce93d8' },
+      { key: '読み・字形による類推', label: '類推', color: '#f48fb1' }
+    ];
+    const EDGE_COLORS = Object.fromEntries(SHRINK_FIELDS.map(f => [f.label, f.color]));
+
+    const initShrinkMap = async () => {
+      const response = await fetch('MJShrinkMapVer.1.2.0/MJShrinkMap.1.2.0.json');
+      const data = await response.json();
+      shrinkMap = new Map(data.content.map(entry => [entry.MJ文字図形名, entry]));
+
+      // UCSからMJ文字図形名への逆引きMapを作成
+      ucsToMjNames = new Map();
+      for (const entry of data.content) {
+        const mjName = entry.MJ文字図形名;
+        for (const { key } of SHRINK_FIELDS) {
+          if (entry[key]) {
+            for (const item of entry[key]) {
+              if (item.UCS) {
+                if (!ucsToMjNames.has(item.UCS)) {
+                  ucsToMjNames.set(item.UCS, []);
+                }
+                if (!ucsToMjNames.get(item.UCS).includes(mjName)) {
+                  ucsToMjNames.get(item.UCS).push(mjName);
+                }
+              }
+            }
+          }
+        }
+      }
+      console.log('ShrinkMap initialized');
+    };
+
+    const getRelatedUcs = (mjName) => {
+      if (!shrinkMap || !mjName) return [];
+      const entry = shrinkMap.get(mjName);
+      if (!entry) return [];
+
+      const ucsSet = new Set();
+      for (const { key } of SHRINK_FIELDS) {
+        if (entry[key]) {
+          for (const item of entry[key]) {
+            if (item.UCS) ucsSet.add(item.UCS);
+          }
+        }
+      }
+      return [...ucsSet];
+    };
 
     const MJ_FIELDS = [
       { key: 'MJ文字図形名', label: 'MJ文字図形名' },
@@ -659,12 +741,397 @@
       }
     };
 
+    // 縮退マップから関連MJ文字図形名を収集（MJ文字図形名ベース）
+    const collectRelatedMjNames = (startMjNames, maxDepth = 2) => {
+      const visitedMj = new Set();
+      const allUcs = new Set();
+
+      const processQueue = [...startMjNames];
+
+      for (let depth = 0; depth < maxDepth && processQueue.length > 0; depth++) {
+        const currentBatch = processQueue.splice(0, processQueue.length);
+
+        for (const mjName of currentBatch) {
+          if (visitedMj.has(mjName)) continue;
+          visitedMj.add(mjName);
+
+          const relatedUcsList = getRelatedUcs(mjName);
+          for (const ucs of relatedUcsList) {
+            allUcs.add(ucs);
+
+            if (ucsToMjNames) {
+              const otherMjNames = ucsToMjNames.get(ucs) || [];
+              for (const otherMj of otherMjNames) {
+                if (!visitedMj.has(otherMj)) {
+                  processQueue.push(otherMj);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return { mjNames: [...visitedMj], relatedUcs: [...allUcs] };
+    };
+
+    // 縮退マップから関連エッジを収集（ネットワーク図用）
+    const collectRelatedEdges = (mjNames) => {
+      const edges = [];
+      const ucsSet = new Set();
+
+      for (const mjName of mjNames) {
+        if (!shrinkMap) continue;
+        const entry = shrinkMap.get(mjName);
+        if (!entry) continue;
+
+        for (const { key, label } of SHRINK_FIELDS) {
+          if (entry[key]) {
+            for (const item of entry[key]) {
+              if (item.UCS) {
+                ucsSet.add(item.UCS);
+                edges.push({ from: mjName, to: item.UCS, type: label });
+              }
+            }
+          }
+        }
+      }
+
+      return { edges, ucsNodes: [...ucsSet] };
+    };
+
+    // 複数のUCSから全MJ文字図形を取得
+    const queryAllByUcsList = async (ucsList) => {
+      if (!conn || ucsList.length === 0) return [];
+      const ucsConditions = ucsList.map(ucs => `'${ucs}'`).join(', ');
+      const result = await conn.query(`
+        SELECT ${SQL_COLUMNS}, font FROM mji
+        WHERE "対応するUCS" IN (${ucsConditions})
+      `);
+      return mapQueryResult(result);
+    };
+
+    // 複数のMJ文字図形名から全データを取得
+    const queryAllByMjNames = async (mjNames) => {
+      if (!conn || mjNames.length === 0) return [];
+      const mjConditions = mjNames.map(mj => `'${mj}'`).join(', ');
+      const result = await conn.query(`
+        SELECT ${SQL_COLUMNS}, font FROM mji
+        WHERE "MJ文字図形名" IN (${mjConditions})
+      `);
+      return mapQueryResult(result);
+    };
+
+    const renderRelated = async (results, inputUcs, inputIvs, inputMjName) => {
+      // 関連MJ文字図形名と関連UCSを収集（縮退マップベース）
+      const currentMjNames = results.map(d => d['MJ文字図形名']).filter(Boolean);
+      const { mjNames: relatedMjNames, relatedUcs } = collectRelatedMjNames(currentMjNames);
+      const currentUcs = results.map(d => d['対応するUCS']).filter(Boolean);
+      const allUcs = [...new Set([...currentUcs, ...relatedUcs])];
+
+      const hasRelated = relatedMjNames.length > 0 || allUcs.length > 0;
+      relatedSection.hidden = !hasRelated;
+      if (!hasRelated) return;
+
+      // 縮退マップのMJ文字図形名 + 関連UCSの対応するUCSで全データを取得
+      const [mjResults, ucsResults] = await Promise.all([
+        queryAllByMjNames([...new Set([...currentMjNames, ...relatedMjNames])]),
+        queryAllByUcsList(allUcs)
+      ]);
+
+      // 重複を除去して統合
+      const seenMjNames = new Set();
+      const allResults = [];
+      for (const r of [...mjResults, ...ucsResults]) {
+        if (!seenMjNames.has(r['MJ文字図形名'])) {
+          seenMjNames.add(r['MJ文字図形名']);
+          allResults.push(r);
+        }
+      }
+
+      // ネットワーク図を生成（D3.js）
+      const networkGraph = document.getElementById('network-graph');
+      if (networkGraph && allResults.length > 0 && typeof d3 !== 'undefined') {
+        const { edges: shrinkEdges } = collectRelatedEdges(allResults.map(r => r['MJ文字図形名']));
+
+        // UCSごとにMJ文字図形をグループ化
+        const ucsToMjMap = new Map();
+        for (const r of allResults) {
+          const ucs = r['対応するUCS'];
+          if (!ucsToMjMap.has(ucs)) {
+            ucsToMjMap.set(ucs, []);
+          }
+          ucsToMjMap.get(ucs).push(r);
+        }
+
+        // 検索した文字を特定
+        const primaryResult = results.find(d => isPrimaryResult(d, inputUcs, inputIvs, inputMjName));
+        const primaryMjName = primaryResult ? primaryResult['MJ文字図形名'] : null;
+        const searchedMjSet = new Set(primaryMjName ? [primaryMjName] : []);
+        const primaryColor = '#1976d2';
+        const relatedColor = '#9e9e9e';
+
+        // ツールチップ要素を作成
+        let tooltip = document.querySelector('.network-tooltip');
+        if (!tooltip) {
+          tooltip = document.createElement('div');
+          tooltip.className = 'network-tooltip';
+          tooltip.style.display = 'none';
+          document.body.appendChild(tooltip);
+        }
+        const showTooltip = (event, html) => {
+          tooltip.innerHTML = html;
+          tooltip.style.display = 'block';
+          tooltip.style.left = `${event.clientX + 12}px`;
+          tooltip.style.top = `${event.clientY - 10}px`;
+        };
+        const moveTooltip = (event) => {
+          tooltip.style.left = `${event.clientX + 12}px`;
+          tooltip.style.top = `${event.clientY - 10}px`;
+        };
+        const hideTooltip = () => { tooltip.style.display = 'none'; };
+
+        // ノードデータを作成
+        const nodes = [];
+        const nodeMap = new Map();
+        for (const [ucs, mjList] of ucsToMjMap) {
+          for (const mj of mjList) {
+            const mjName = mj['MJ文字図形名'];
+            const isSearched = searchedMjSet.has(mjName);
+            const node = {
+              id: mjName,
+              ucs: ucs,
+              imgUrl: getMjImageUrl(mjName),
+              isSearched,
+              color: isSearched ? primaryColor : relatedColor,
+              size: isSearched ? 48 : 32
+            };
+            nodes.push(node);
+            nodeMap.set(mjName, node);
+          }
+        }
+
+        // エッジデータを作成
+        const links = [];
+        const mjEdgeSet = new Set();
+        for (const edge of shrinkEdges) {
+          const fromMj = edge.from;
+          const toUcs = edge.to;
+          const edgeColor = EDGE_COLORS[edge.type] || '#999';
+          const toMjList = ucsToMjMap.get(toUcs) || [];
+          for (const toMjData of toMjList) {
+            const toMj = toMjData['MJ文字図形名'];
+            if (fromMj !== toMj && nodeMap.has(fromMj) && nodeMap.has(toMj)) {
+              const edgeKey = [fromMj, toMj].sort().join('-') + '-' + edge.type;
+              if (!mjEdgeSet.has(edgeKey)) {
+                mjEdgeSet.add(edgeKey);
+                links.push({
+                  source: fromMj,
+                  target: toMj,
+                  type: edge.type,
+                  color: edgeColor
+                });
+              }
+            }
+          }
+        }
+
+        // SVGをクリア＆作成
+        networkGraph.innerHTML = '';
+        const width = networkGraph.clientWidth;
+        const height = Math.min(width * 0.6, 600);
+        networkGraph.style.height = `${height}px`;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        const svg = d3.select(networkGraph)
+          .append('svg')
+          .attr('width', width)
+          .attr('height', height)
+          .attr('viewBox', [0, 0, width, height]);
+
+        // ズーム・パン対応
+        const g = svg.append('g');
+        svg.call(d3.zoom()
+          .scaleExtent([0.3, 3])
+          .on('zoom', (event) => g.attr('transform', event.transform)));
+
+        // 矢印マーカー定義
+        const defs = svg.append('defs');
+        Object.entries(EDGE_COLORS).forEach(([type, color]) => {
+          defs.append('marker')
+            .attr('id', `arrow-${type}`)
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 12)
+            .attr('refY', 0)
+            .attr('markerWidth', 5)
+            .attr('markerHeight', 5)
+            .attr('orient', 'auto')
+            .append('path')
+            .attr('d', 'M0,-5L10,0L0,5')
+            .attr('fill', color);
+        });
+
+        // Force simulation
+        const simulation = d3.forceSimulation(nodes)
+          .force('link', d3.forceLink(links).id(d => d.id).distance(120).strength(0.5))
+          .force('charge', d3.forceManyBody().strength(-300))
+          .force('x', d3.forceX(centerX).strength(0.05))
+          .force('y', d3.forceY(centerY).strength(0.05))
+          .force('collision', d3.forceCollide().radius(d => d.size + 10));
+
+        // 検索文字を中央に固定
+        nodes.forEach(node => {
+          if (node.isSearched) {
+            node.fx = centerX;
+            node.fy = centerY;
+          }
+        });
+
+        // エッジ描画（曲線）+ 出現アニメーション
+        const link = g.append('g')
+          .attr('class', 'links')
+          .selectAll('path')
+          .data(links)
+          .join('path')
+          .attr('stroke', d => d.color)
+          .attr('stroke-width', 2)
+          .attr('stroke-opacity', 0)
+          .attr('fill', 'none')
+          .attr('marker-end', d => `url(#arrow-${d.type})`)
+          .attr('stroke-dasharray', '5,3');
+
+        // エッジの出現アニメーション
+        link.transition()
+          .delay((d, i) => Math.min(i * 5, 100))
+          .duration(300)
+          .attr('stroke-opacity', 0.6);
+
+        // ノード描画（画像 + 枠線）
+        const node = g.append('g')
+          .attr('class', 'nodes')
+          .selectAll('g')
+          .data(nodes)
+          .join('g')
+          .attr('cursor', 'pointer')
+          .call(d3.drag()
+            .on('start', (event, d) => {
+              if (!event.active) simulation.alphaTarget(0.3).restart();
+              d.fx = d.x;
+              d.fy = d.y;
+            })
+            .on('drag', (event, d) => {
+              d.fx = event.x;
+              d.fy = event.y;
+            })
+            .on('end', (event, d) => {
+              if (!event.active) simulation.alphaTarget(0);
+              if (!d.isSearched) {
+                d.fx = null;
+                d.fy = null;
+              }
+            }));
+
+        // 枠線（円）
+        node.append('circle')
+          .attr('r', d => d.size / 2 + 3)
+          .attr('fill', '#fff')
+          .attr('stroke', d => d.color)
+          .attr('stroke-width', d => d.isSearched ? 4 : 2);
+
+        // 画像（clipPathで丸く切り抜き）
+        node.each(function (d, i) {
+          const clipId = `clip-${d.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+          defs.append('clipPath')
+            .attr('id', clipId)
+            .append('circle')
+            .attr('r', d.size / 2);
+
+          d3.select(this).append('image')
+            .attr('xlink:href', d.imgUrl)
+            .attr('x', -d.size / 2)
+            .attr('y', -d.size / 2)
+            .attr('width', d.size)
+            .attr('height', d.size)
+            .attr('clip-path', `url(#${clipId})`);
+        });
+
+        // ホバー時のハイライト＋ツールチップ
+        node.on('mouseenter', function (event, d) {
+          const isConnected = l => l.source.id === d.id || l.target.id === d.id;
+          const connectedIds = new Set([d.id]);
+          const connectedEdges = [];
+          link.each(function (l) {
+            if (isConnected(l)) {
+              connectedIds.add(l.source.id);
+              connectedIds.add(l.target.id);
+              connectedEdges.push(l);
+            }
+          });
+
+          link.transition().duration(200)
+            .attr('stroke-opacity', l => isConnected(l) ? 1 : 0.1)
+            .attr('stroke-width', l => isConnected(l) ? 3 : 1);
+          node.select('circle').transition().duration(200).attr('opacity', n => connectedIds.has(n.id) ? 1 : 0.3);
+          node.select('image').transition().duration(200).attr('opacity', n => connectedIds.has(n.id) ? 1 : 0.3);
+          d3.select(this).raise().select('circle').transition().duration(150).attr('r', d.size / 2 + 6);
+
+          // ツールチップ表示
+          const types = [...new Set(connectedEdges.map(e => e.type))];
+          showTooltip(event, `<strong>${d.id}</strong>${types.length ? `<br><span style="color:#aaa">${types.join(' / ')}</span>` : ''}`);
+        })
+          .on('mousemove', moveTooltip)
+          .on('mouseleave', function (event, d) {
+            link.transition().duration(200).attr('stroke-opacity', 0.6).attr('stroke-width', 2);
+            node.select('circle').transition().duration(200).attr('opacity', 1);
+            node.select('image').transition().duration(200).attr('opacity', 1);
+            d3.select(this).select('circle').transition().duration(150).attr('r', d.size / 2 + 3);
+            hideTooltip();
+          })
+          .on('click', (event, d) => {
+            setInputAndUpdate(d.id);
+          });
+
+        // エッジのホバーでツールチップ表示
+        link.on('mouseenter', function (event, d) {
+          d3.select(this).raise().transition().duration(150).attr('stroke-opacity', 1).attr('stroke-width', 4);
+          showTooltip(event, `<span style="color:${EDGE_COLORS[d.type] || '#888'}">${d.type}</span><br>${d.source.id} → ${d.target.id}`);
+        })
+          .on('mousemove', moveTooltip)
+          .on('mouseleave', function () {
+            d3.select(this).transition().duration(150).attr('stroke-opacity', 0.6).attr('stroke-width', 2);
+            hideTooltip();
+          });
+
+        // シミュレーション更新
+        simulation.on('tick', () => {
+          // 曲線エッジ（ノード境界で終端）
+          link.attr('d', d => {
+            const dx = d.target.x - d.source.x;
+            const dy = d.target.y - d.source.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist === 0) return '';
+
+            // ターゲットノードの半径分だけ手前で終わる
+            const targetRadius = nodeMap.get(d.target.id)?.size / 2 + 8 || 20;
+            const ratio = (dist - targetRadius) / dist;
+            const endX = d.source.x + dx * ratio;
+            const endY = d.source.y + dy * ratio;
+
+            const dr = dist * 0.8;
+            return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${endX},${endY}`;
+          });
+          node.attr('transform', d => `translate(${d.x},${d.y})`);
+        });
+      }
+    };
+
     const update = async () => {
       const input = inputChar.value.trim();
       const input2 = inputChar2.value.trim();
 
       variantsSection.hidden = true;
       candidatesSection.hidden = true;
+      relatedSection.hidden = true;
 
       // 比較モードの処理
       if (compareMode) {
@@ -723,6 +1190,7 @@
         mainEmpty.hidden = true;
         variantsSection.hidden = false;
         renderVariantsTable(results, null, null, null, mjName);
+        await renderRelated(results, null, null, mjName);
         trackSearch(mjName);
         return;
       }
@@ -762,6 +1230,7 @@
       renderVariantsTable(results, char, ucs, ivs);
       const primary = results.find((d) => isPrimaryResult(d, ucs, ivs, null)) || results[0];
       addToHistory(char, primary?.['MJ文字図形名']);
+      await renderRelated(results, ucs, ivs, null);
       trackSearch(char);
     };
 
@@ -851,10 +1320,10 @@
 
     renderHistory();
 
-    initDuckDB()
+    Promise.all([initDuckDB(), initShrinkMap()])
       .then(() => {
         dbStatus.removeAttribute('aria-busy');
-        dbStatus.textContent = 'MJ文字情報（約6万文字）を読み込みました';
+        dbStatus.textContent = 'MJ文字情報（約6万文字）と縮退マップを読み込みました';
 
         const params = new URLSearchParams(location.search);
         const q = params.get('q');
@@ -872,9 +1341,9 @@
         update();
       })
       .catch((err) => {
-        console.error('DuckDB init failed:', err);
+        console.error('Init failed:', err);
         dbStatus.removeAttribute('aria-busy');
-        dbStatus.textContent = 'MJデータの読み込みに失敗しました: ' + err.message;
+        dbStatus.textContent = 'データの読み込みに失敗しました: ' + err.message;
       });
   </script>
 </body>
