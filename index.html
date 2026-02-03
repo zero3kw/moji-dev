@@ -9,9 +9,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <style>
-    /* レイアウト */
-    header {
-      margin-bottom: var(--pico-block-spacing-vertical);
+    /* === Layout === */
+    header { margin-bottom: var(--pico-block-spacing-vertical); }
+    footer {
+      margin-top: calc(var(--pico-block-spacing-vertical) * 2);
+      padding-top: var(--pico-spacing);
+      border-top: 1px solid var(--pico-muted-border-color);
     }
 
     .header-row {
@@ -20,10 +23,7 @@
       align-items: center;
       gap: var(--pico-spacing);
     }
-
-    .header-row h1 {
-      margin-bottom: 0;
-    }
+    .header-row h1 { margin-bottom: 0; }
 
     .compare-inputs {
       display: flex;
@@ -31,24 +31,52 @@
       align-items: center;
       margin-bottom: var(--pico-block-spacing-vertical);
     }
-
     .compare-inputs input[type="search"] {
+      font-family: "IPAmjMincho", "IPAmj明朝", serif;
       font-size: 1.5rem;
       max-width: 18rem;
       margin-bottom: 0;
     }
 
-    footer {
-      margin-top: calc(var(--pico-block-spacing-vertical) * 2);
-      padding-top: var(--pico-spacing);
-      border-top: 1px solid var(--pico-muted-border-color);
-    }
+    /* === Sections === */
+    .history-section,
+    .candidates-section,
+    .related-section { margin-bottom: var(--pico-block-spacing-vertical); }
 
-    /* テーブル */
-    .compare-table {
-      font-size: 0.875rem;
+    .history-header {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
     }
+    .history-reset-btn {
+      background: transparent;
+      border: none;
+      color: var(--pico-muted-color);
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+    }
+    .history-reset-btn:hover { color: var(--pico-del-color); }
 
+    .related-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .hop-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--pico-muted-color);
+      margin: 0;
+    }
+    .hop-input { width: 240px; margin: 0; padding: 0; }
+    .hop-value { min-width: 1rem; }
+
+    /* === Table === */
+    .compare-table { font-size: 0.875rem; }
     .compare-table th:first-child {
       text-align: left;
       font-weight: normal;
@@ -58,43 +86,24 @@
       left: 0;
       background: var(--pico-card-background-color);
     }
+    .compare-table th:not(:first-child) { text-align: center; min-width: 100px; }
+    .compare-table thead th { vertical-align: bottom; }
+    .compare-table td { font-family: monospace; text-align: center; }
+    .compare-table td.match { background: color-mix(in srgb, var(--pico-ins-color) 10%, transparent); }
+    .compare-table td.diff { background: color-mix(in srgb, var(--pico-del-color) 10%, transparent); }
 
-    .compare-table th:not(:first-child) {
-      text-align: center;
-      min-width: 100px;
-    }
-
-    .compare-table td {
-      font-family: monospace;
-      text-align: center;
-    }
-
-    .compare-table td.match {
-      background: color-mix(in srgb, var(--pico-ins-color) 10%, transparent);
-    }
-
-    .compare-table td.diff {
-      background: color-mix(in srgb, var(--pico-del-color) 10%, transparent);
-    }
-
-    .compare-table thead th {
-      vertical-align: bottom;
-    }
-
-    /* MJ画像 */
+    /* === Components === */
     .mj-img {
       background: white;
       border-radius: var(--pico-border-radius);
       padding: 0.25rem;
     }
-
     .mj-img-primary {
       outline: 3px solid var(--pico-primary);
       outline-offset: 2px;
       box-shadow: 0 0 8px var(--pico-primary);
     }
 
-    /* Copyボタン */
     .copy-btn {
       font-size: 0.65rem;
       padding: 0.15rem 0.4rem;
@@ -105,18 +114,9 @@
       color: var(--pico-muted-color);
       cursor: pointer;
     }
+    .copy-btn:hover { border-color: var(--pico-primary); color: var(--pico-primary); }
+    .copy-btn.copied { border-color: var(--pico-ins-color); color: var(--pico-ins-color); }
 
-    .copy-btn:hover {
-      border-color: var(--pico-primary);
-      color: var(--pico-primary);
-    }
-
-    .copy-btn.copied {
-      border-color: var(--pico-ins-color);
-      color: var(--pico-ins-color);
-    }
-
-    /* リスト共通 */
     .char-list {
       display: flex;
       flex-wrap: wrap;
@@ -125,7 +125,6 @@
       padding: 0;
       margin: 0;
     }
-
     .char-item {
       display: flex;
       flex-direction: column;
@@ -137,54 +136,14 @@
       transition: border-color 0.2s, background 0.2s;
       min-width: 4rem;
     }
-
     .char-item:hover {
       border-color: var(--pico-primary);
       background: color-mix(in srgb, var(--pico-primary) 5%, transparent);
     }
+    .char-item.small { min-width: 2.5rem; width: 2.5rem; height: 2.5rem; justify-content: center; }
+    .char-item .char { font-size: 1.5rem; }
+    .char-item.small .char { font-size: 1.25rem; }
 
-    .char-item.small {
-      min-width: 2.5rem;
-      width: 2.5rem;
-      height: 2.5rem;
-      justify-content: center;
-    }
-
-    .char-item .char {
-      font-size: 1.5rem;
-    }
-
-    .char-item.small .char {
-      font-size: 1.25rem;
-    }
-
-    /* セクション */
-    .history-section,
-    .candidates-section,
-    .related-section {
-      margin-bottom: var(--pico-block-spacing-vertical);
-    }
-
-    .history-header {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
-
-    .history-reset-btn {
-      background: transparent;
-      border: none;
-      color: var(--pico-muted-color);
-      cursor: pointer;
-      padding: 0;
-      display: flex;
-    }
-
-    .history-reset-btn:hover {
-      color: var(--pico-del-color);
-    }
-
-    /* トグル */
     .compare-toggle {
       display: flex;
       align-items: center;
@@ -194,35 +153,19 @@
       cursor: pointer;
       margin-bottom: 0;
     }
+    .compare-toggle input[type="checkbox"] { margin: 0; }
 
-    .compare-toggle input[type="checkbox"] {
-      margin: 0;
-    }
+    .compare-vs { font-size: 1.25rem; color: var(--pico-muted-color); }
+    .clickable-ucs { cursor: pointer; color: var(--pico-primary); text-decoration: underline; }
+    #main-empty { color: var(--pico-muted-color); font-style: italic; }
 
-    /* 空状態・その他 */
-    #main-empty {
-      color: var(--pico-muted-color);
-      font-style: italic;
-    }
-
-    .compare-vs {
-      font-size: 1.25rem;
-      color: var(--pico-muted-color);
-    }
-
-    .clickable-ucs {
-      cursor: pointer;
-      color: var(--pico-primary);
-      text-decoration: underline;
-    }
-
+    /* === Network Graph === */
     .network-graph {
       margin-top: 0.5rem;
       width: 100%;
       border-radius: var(--pico-border-radius);
       background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     }
-
     .network-tooltip {
       position: fixed;
       padding: 0.4rem 0.6rem;
@@ -233,6 +176,25 @@
       pointer-events: none;
       z-index: 1000;
       white-space: nowrap;
+    }
+    .network-resize-handle {
+      height: 8px;
+      cursor: ns-resize;
+      background: linear-gradient(to bottom, transparent, var(--pico-muted-border-color) 50%, transparent);
+      border-radius: 0 0 var(--pico-border-radius) var(--pico-border-radius);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+    .network-resize-handle:hover { opacity: 1; }
+    .network-resize-handle::after {
+      content: '';
+      width: 40px;
+      height: 4px;
+      background: var(--pico-muted-color);
+      border-radius: 2px;
     }
   </style>
 </head>
@@ -259,12 +221,12 @@
     <section id="history-section" class="history-section" hidden>
       <div class="history-header">
         <small>最近の検索</small>
-        <button id="history-reset" class="history-reset-btn" title="履歴をクリア"><svg width="12" height="12"
-            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 6h18" />
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <button id="history-reset" class="history-reset-btn" title="履歴をクリア">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-          </svg></button>
+          </svg>
+        </button>
       </div>
       <ul class="char-list" id="history-list"></ul>
     </section>
@@ -285,10 +247,17 @@
     </section>
 
     <section id="related-section" class="related-section" hidden>
-      <small>関連する文字</small>
+      <div class="related-header">
+        <small>関連する文字</small>
+        <label class="hop-control">
+          <span>深さ:</span>
+          <input type="range" id="hop-depth" class="hop-input" min="1" max="18" value="3">
+          <span id="hop-depth-value" class="hop-value">3</span>
+        </label>
+      </div>
       <div id="network-graph" class="network-graph"></div>
+      <div id="network-resize-handle" class="network-resize-handle" title="ドラッグで高さを調整"></div>
     </section>
-
   </main>
 
   <footer class="container">
@@ -302,161 +271,28 @@
   <script type="module">
     import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
 
-    const inputChar = document.getElementById('input-char');
-    const mainEmpty = document.getElementById('main-empty');
-    const variantsSection = document.getElementById('variants-section');
-    const variantsHeader = document.getElementById('variants-header');
-    const variantsBody = document.getElementById('variants-body');
-    const candidatesSection = document.getElementById('candidates-section');
-    const candidatesList = document.getElementById('candidates-list');
-    const candidatesLabel = document.getElementById('candidates-label');
-    const historySection = document.getElementById('history-section');
-    const historyList = document.getElementById('history-list');
-    const historyReset = document.getElementById('history-reset');
-    const inputChar2 = document.getElementById('input-char2');
-    const compareToggle = document.getElementById('compare-toggle');
-    const compareVs = document.getElementById('compare-vs');
-    const relatedSection = document.getElementById('related-section');
-
-    let compareMode = false;
-    let lastFocusedInput = inputChar;
-
-    inputChar.addEventListener('focus', () => lastFocusedInput = inputChar);
-    inputChar2.addEventListener('focus', () => lastFocusedInput = inputChar2);
-
-    const getTargetInput = () => compareMode && lastFocusedInput === inputChar2 ? inputChar2 : inputChar;
-
-    const showEmpty = (message) => {
-      mainEmpty.hidden = false;
-      mainEmpty.textContent = message;
+    // ============================================================
+    // Config & Constants
+    // ============================================================
+    const CONFIG = {
+      historyKey: 'mj-viewer-history',
+      maxHistory: 20,
+      debounceMs: 400,
+      queryLimit: 100,
+      animation: { hopDelay: 150, trailDuration: 300 },
+      colors: { primary: '#1976d2', related: '#9e9e9e' }
     };
 
-    const clearTable = () => {
-      variantsHeader.textContent = '';
-      variantsBody.textContent = '';
-    };
-
-    const setInputAndUpdate = (value) => {
-      getTargetInput().value = value;
-      updateUrl(inputChar.value, inputChar2.value);
-      update();
-    };
-
-    const HISTORY_KEY = 'mj-viewer-history';
-    const MAX_HISTORY = 20;
-
-    // アイコン
-    const ICON_COPY = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
-    const ICON_CHECK = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
-
-    // GA4 event
-    const trackSearch = (searchTerm) => {
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'search', { search_term: searchTerm });
-      }
-    };
-
-    const getHistory = () => {
-      try {
-        const raw = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-        return raw.map((item) => typeof item === 'string' ? { char: item, mjName: null } : item);
-      } catch {
-        return [];
-      }
-    };
-
-    const addToHistory = (char, mjName = null) => {
-      if (!char || isMjName(char) || isReading(char)) return;
-      const history = getHistory().filter((item) => item.char !== char);
-      history.unshift({ char, mjName });
-      if (history.length > MAX_HISTORY) history.pop();
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-      renderHistory();
-    };
-
-    const renderHistory = () => {
-      const history = getHistory();
-      historySection.hidden = history.length === 0;
-      historyList.textContent = '';
-
-      for (const { char, mjName } of history) {
-        const li = document.createElement('li');
-        li.className = 'char-item small';
-        const imgUrl = getMjImageUrl(mjName);
-        if (imgUrl) {
-          li.innerHTML = `<img src="${imgUrl}" alt="${mjName}" class="mj-img" style="height:1.5rem">`;
-        } else {
-          li.innerHTML = `<span class="char">${char}</span>`;
-        }
-        li.title = char;
-        li.addEventListener('click', () => setInputAndUpdate(char));
-        historyList.appendChild(li);
-      }
-    };
-
-    const clearHistory = () => {
-      localStorage.removeItem(HISTORY_KEY);
-      renderHistory();
-    };
-
-    historyReset.addEventListener('click', clearHistory);
-
-    let conn = null;
-    let shrinkMap = null;
-    let ucsToMjNames = null;
-
-    // 縮退マップのフィールド定義（key: JSONキー, label: 表示ラベル, color: エッジ色）
     const SHRINK_FIELDS = [
-      { key: 'JIS包摂規準・UCS統合規則', label: 'JIS包摂', color: '#64b5f6' },
-      { key: '辞書類等による関連字', label: '辞書類', color: '#81c784' },
-      { key: '法務省告示582号別表第四', label: '告示', color: '#ffb74d' },
-      { key: '法務省戸籍法関連通達・通知', label: '戸籍法', color: '#ce93d8' },
-      { key: '読み・字形による類推', label: '類推', color: '#f48fb1' }
+      { key: 'JIS包摂規準・UCS統合規則', id: 'jis', label: 'JIS包摂', color: '#64b5f6' },
+      { key: '辞書類等による関連字', id: 'dict', label: '辞書関連', color: '#81c784' },
+      { key: '法務省告示582号別表第四', id: 'notice', label: '法務省告示', color: '#ffb74d' },
+      { key: '法務省戸籍法関連通達・通知', id: 'koseki', label: '戸籍法通達', color: '#ce93d8' },
+      { key: '読み・字形による類推', id: 'analog', label: '類推', color: '#f48fb1' }
     ];
-    const EDGE_COLORS = Object.fromEntries(SHRINK_FIELDS.map(f => [f.label, f.color]));
 
-    const initShrinkMap = async () => {
-      const response = await fetch('MJShrinkMapVer.1.2.0/MJShrinkMap.1.2.0.json');
-      const data = await response.json();
-      shrinkMap = new Map(data.content.map(entry => [entry.MJ文字図形名, entry]));
-
-      // UCSからMJ文字図形名への逆引きMapを作成
-      ucsToMjNames = new Map();
-      for (const entry of data.content) {
-        const mjName = entry.MJ文字図形名;
-        for (const { key } of SHRINK_FIELDS) {
-          if (entry[key]) {
-            for (const item of entry[key]) {
-              if (item.UCS) {
-                if (!ucsToMjNames.has(item.UCS)) {
-                  ucsToMjNames.set(item.UCS, []);
-                }
-                if (!ucsToMjNames.get(item.UCS).includes(mjName)) {
-                  ucsToMjNames.get(item.UCS).push(mjName);
-                }
-              }
-            }
-          }
-        }
-      }
-      console.log('ShrinkMap initialized');
-    };
-
-    const getRelatedUcs = (mjName) => {
-      if (!shrinkMap || !mjName) return [];
-      const entry = shrinkMap.get(mjName);
-      if (!entry) return [];
-
-      const ucsSet = new Set();
-      for (const { key } of SHRINK_FIELDS) {
-        if (entry[key]) {
-          for (const item of entry[key]) {
-            if (item.UCS) ucsSet.add(item.UCS);
-          }
-        }
-      }
-      return [...ucsSet];
-    };
+    const EDGE_COLORS = Object.fromEntries(SHRINK_FIELDS.map(f => [f.id, f.color]));
+    const EDGE_LABELS = Object.fromEntries(SHRINK_FIELDS.map(f => [f.id, f.label]));
 
     const MJ_FIELDS = [
       { key: 'MJ文字図形名', label: 'MJ文字図形名' },
@@ -480,181 +316,343 @@
       { key: '読み(参考)', label: '読み' },
     ];
 
+    const ICONS = {
+      copy: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy',
+      check: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!'
+    };
+
+    // ============================================================
+    // DOM Elements
+    // ============================================================
+    const $ = (id) => document.getElementById(id);
+    const dom = {
+      inputChar: $('input-char'),
+      inputChar2: $('input-char2'),
+      compareToggle: $('compare-toggle'),
+      compareVs: $('compare-vs'),
+      mainEmpty: $('main-empty'),
+      variantsSection: $('variants-section'),
+      variantsHeader: $('variants-header'),
+      variantsBody: $('variants-body'),
+      candidatesSection: $('candidates-section'),
+      candidatesList: $('candidates-list'),
+      candidatesLabel: $('candidates-label'),
+      historySection: $('history-section'),
+      historyList: $('history-list'),
+      historyReset: $('history-reset'),
+      relatedSection: $('related-section'),
+      hopDepth: $('hop-depth'),
+      hopDepthValue: $('hop-depth-value'),
+      networkGraph: $('network-graph'),
+      networkResizeHandle: $('network-resize-handle'),
+      dbStatus: $('db-status')
+    };
+
+    // ============================================================
+    // State
+    // ============================================================
+    let conn = null;
+    let shrinkMap = null;
+    let ucsToMjNames = null;
+    let compareMode = false;
+    let lastFocusedInput = dom.inputChar;
+    let lastRelatedParams = null;
+    let networkGraphHeight = null;
+
+    // ============================================================
+    // Utilities
+    // ============================================================
+    const debounce = (fn, ms) => {
+      let timer;
+      return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+    };
+
+    const escapeSql = (v) => String(v).replace(/'/g, "''");
+    const quoteSql = (v) => `'${escapeSql(v)}'`;
+    const buildInClause = (vals) => vals.map(quoteSql).join(', ');
+    const formatValue = (v) => (v === '' || v == null) ? '-' : v;
+
+    const ucsToChar = (ucs) => ucs ? String.fromCodePoint(parseInt(ucs.replace('U+', ''), 16)) : null;
+    const ivsToChar = (ivs) => {
+      if (!ivs) return null;
+      const parts = ivs.includes('_')
+        ? ivs.split('_').map(p => parseInt(p, 16))
+        : ivs.split(' ').map(p => parseInt(p.replace('U+', ''), 16));
+      return String.fromCodePoint(...parts);
+    };
+
+    const getDisplayChar = (data, fallback = '?') =>
+      ivsToChar(data['実装したMoji_JohoコレクションIVS']) ||
+      ucsToChar(data['実装したUCS'] || data['対応するUCS']) || fallback;
+
+    const getMjImageUrl = (name) => name ? `https://moji.or.jp/mojikibansearch/img/MJ/${name}.png` : null;
+
+    const isMjName = (s) => /^MJ\d{6}$/i.test(s.trim());
+    const isReading = (s) => /^[\u3040-\u309F\u30A0-\u30FF]+$/.test(s.trim());
+
+    const parseInput = (input) => {
+      const chars = Array.from(input);
+      if (!chars.length) return { ucs: null, ivs: null };
+      const base = chars[0].codePointAt(0);
+      const ucs = `U+${base.toString(16).toUpperCase().padStart(4, '0')}`;
+      if (chars.length >= 2) {
+        const vs = chars[1].codePointAt(0);
+        if (vs >= 0xE0100 && vs <= 0xE01EF) {
+          return { ucs, ivs: `${base.toString(16).toUpperCase()}_${vs.toString(16).toUpperCase()}` };
+        }
+      }
+      return { ucs, ivs: null };
+    };
+
+    const getCharFromInput = (input) => {
+      const { ivs } = parseInput(input);
+      const chars = Array.from(input);
+      return ivs ? chars.slice(0, 2).join('') : (chars[0] || '');
+    };
+
     const calcJisLevel = (x0213) => {
       if (!x0213) return '';
-      const match = x0213.match(/^(\d)-(\d+)-(\d+)$/);
-      if (!match) return '';
-
-      const [, men, ku] = match.map(Number);
-
+      const m = x0213.match(/^(\d)-(\d+)-(\d+)$/);
+      if (!m) return '';
+      const [, men, ku] = m.map(Number);
       if (men === 1) {
         if (ku >= 1 && ku <= 8) return '非漢字';
         if (ku >= 16 && ku <= 47) return '1';
         if (ku >= 48 && ku <= 84) return '2';
         return '3';
       }
-      if (men === 2) return '4';
-      return '';
+      return men === 2 ? '4' : '';
     };
 
     const getUnicodeBlock = (ucs) => {
       if (!ucs) return '';
       const code = parseInt(ucs.replace('U+', ''), 16);
       if (isNaN(code)) return '';
-
-      // CJK関連のUnicodeブロック
-      if (code >= 0x4E00 && code <= 0x9FFF) return 'CJK統合漢字';
-      if (code >= 0x3400 && code <= 0x4DBF) return 'CJK統合漢字拡張A';
-      if (code >= 0x20000 && code <= 0x2A6DF) return 'CJK統合漢字拡張B';
-      if (code >= 0x2A700 && code <= 0x2B73F) return 'CJK統合漢字拡張C';
-      if (code >= 0x2B740 && code <= 0x2B81F) return 'CJK統合漢字拡張D';
-      if (code >= 0x2B820 && code <= 0x2CEAF) return 'CJK統合漢字拡張E';
-      if (code >= 0x2CEB0 && code <= 0x2EBEF) return 'CJK統合漢字拡張F';
-      if (code >= 0x30000 && code <= 0x3134F) return 'CJK統合漢字拡張G';
-      if (code >= 0x31350 && code <= 0x323AF) return 'CJK統合漢字拡張H';
-      if (code >= 0xF900 && code <= 0xFAFF) return 'CJK互換漢字';
-      if (code >= 0x2F800 && code <= 0x2FA1F) return 'CJK互換漢字補助';
-      if (code >= 0x2F00 && code <= 0x2FDF) return '康煕部首';
-      if (code >= 0x2E80 && code <= 0x2EFF) return 'CJK部首補助';
-      if (code >= 0x3000 && code <= 0x303F) return 'CJK記号・句読点';
-
-      return '';
-    };
-
-    // 共通ヘルパー
-    const SQL_COLUMNS = MJ_FIELDS.filter((f) => !f.computed).map((f) => `"${f.key}"`).join(', ');
-    const ucsToChar = (ucs) => ucs ? String.fromCodePoint(parseInt(ucs.replace('U+', ''), 16)) : null;
-    const getDisplayChar = (data, fallback = '?') => ucsToChar(data['実装したUCS'] || data['対応するUCS']) || fallback;
-    const formatValue = (v) => (v === '' || v == null) ? '-' : v;
-    const mapQueryResult = (result) => result.toArray().map((row) => {
-      const data = {};
-      for (const field of MJ_FIELDS) {
-        if (!field.computed) data[field.key] = row[field.key];
-      }
-      data.font = row.font;
-      data['X0213_level'] = calcJisLevel(data['X0213']);
-      data['UnicodeBlock'] = getUnicodeBlock(data['対応するUCS']);
-      return data;
-    });
-
-    const initDuckDB = async () => {
-      const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
-      const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
-
-      const workerUrl = URL.createObjectURL(
-        new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
-      );
-
-      const worker = new Worker(workerUrl);
-      const logger = new duckdb.ConsoleLogger();
-      const db = new duckdb.AsyncDuckDB(logger, worker);
-      await db.instantiate(bundle.mainModule);
-      URL.revokeObjectURL(workerUrl);
-      conn = await db.connect();
-
-      const csvResponse = await fetch('mji.00602.csv');
-      const csvBuffer = await csvResponse.arrayBuffer();
-      await db.registerFileBuffer('mji.csv', new Uint8Array(csvBuffer));
-
-      await conn.query(`
-          CREATE TABLE mji AS
-          SELECT * FROM read_csv_auto('mji.csv')
-        `);
-
-      console.log('DuckDB initialized');
-    };
-
-    const parseInput = (input) => {
-      const chars = Array.from(input);
-      if (!chars.length) return { ucs: null, ivs: null };
-
-      const base = chars[0].codePointAt(0);
-      const ucs = `U+${base.toString(16).toUpperCase().padStart(4, '0')}`;
-
-      // IVS: 2文字目が異体字セレクタ (U+E0100〜U+E01EF) の場合
-      if (chars.length >= 2) {
-        const vs = chars[1].codePointAt(0);
-        if (vs >= 0xE0100 && vs <= 0xE01EF) {
-          const ivs = `${base.toString(16).toUpperCase()}_${vs.toString(16).toUpperCase()}`;
-          return { ucs, ivs };
-        }
-      }
-
-      return { ucs, ivs: null };
-    };
-
-    const queryByUcs = async (ucs, ivs = null) => {
-      if (!conn || !ucs) return [];
-      const ivsCondition = ivs ? ` OR "実装したMoji_JohoコレクションIVS" = '${ivs}'` : '';
-      const result = await conn.query(`
-          SELECT ${SQL_COLUMNS}, font FROM mji
-          WHERE "対応するUCS" IN (
-            SELECT "対応するUCS" FROM mji
-            WHERE "対応するUCS" = '${ucs}' OR "実装したUCS" = '${ucs}'${ivsCondition}
-          )
-        `);
-      return mapQueryResult(result);
-    };
-
-    const queryByMjName = async (mjName) => {
-      if (!conn || !mjName) return [];
-      const result = await conn.query(`
-          SELECT ${SQL_COLUMNS}, font FROM mji
-          WHERE "対応するUCS" IN (
-            SELECT "対応するUCS" FROM mji WHERE "MJ文字図形名" = '${mjName}'
-          )
-        `);
-      return mapQueryResult(result);
-    };
-
-    const isMjName = (input) => /^MJ\d{6}$/i.test(input.trim());
-    const isReading = (input) => /^[\u3040-\u309F\u30A0-\u30FF]+$/.test(input.trim());
-
-    const queryByReading = async (reading) => {
-      if (!conn || !reading) return [];
-      const hiragana = reading.replace(/[\u30A0-\u30FF]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
-      const katakana = reading.replace(/[\u3040-\u309F]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0x60));
-      const result = await conn.query(`
-          SELECT DISTINCT ${SQL_COLUMNS}, font FROM mji
-          WHERE "読み(参考)" LIKE '${hiragana}%' OR "読み(参考)" LIKE '${katakana}%'
-             OR "読み(参考)" LIKE '%・${hiragana}%' OR "読み(参考)" LIKE '%・${katakana}%'
-          LIMIT 50
-        `);
-      return mapQueryResult(result);
-    };
-
-    const getMjImageUrl = (mjName) => {
-      if (!mjName) return null;
-      return `https://moji.or.jp/mojikibansearch/img/MJ/${mjName}.png`;
-    };
-
-    const copyToClipboard = async (text, btn) => {
-      try {
-        await navigator.clipboard.writeText(text);
-        btn.innerHTML = ICON_CHECK;
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.innerHTML = ICON_COPY;
-          btn.classList.remove('copied');
-        }, 1500);
-      } catch (err) {
-        console.error('Copy failed:', err);
-      }
-    };
-
-    const getCopyChar = (data, fallback) => {
-      const ivs = data['実装したMoji_JohoコレクションIVS'];
-      if (ivs) {
-        const [baseHex, vsHex] = ivs.split('_');
-        return String.fromCodePoint(parseInt(baseHex, 16), parseInt(vsHex, 16));
-      }
-      return getDisplayChar(data, fallback);
+      const blocks = [
+        [0x4E00, 0x9FFF, 'CJK統合漢字'], [0x3400, 0x4DBF, 'CJK統合漢字拡張A'],
+        [0x20000, 0x2A6DF, 'CJK統合漢字拡張B'], [0x2A700, 0x2B73F, 'CJK統合漢字拡張C'],
+        [0x2B740, 0x2B81F, 'CJK統合漢字拡張D'], [0x2B820, 0x2CEAF, 'CJK統合漢字拡張E'],
+        [0x2CEB0, 0x2EBEF, 'CJK統合漢字拡張F'], [0x30000, 0x3134F, 'CJK統合漢字拡張G'],
+        [0x31350, 0x323AF, 'CJK統合漢字拡張H'], [0xF900, 0xFAFF, 'CJK互換漢字'],
+        [0x2F800, 0x2FA1F, 'CJK互換漢字補助'], [0x2F00, 0x2FDF, '康煕部首'],
+        [0x2E80, 0x2EFF, 'CJK部首補助'], [0x3000, 0x303F, 'CJK記号・句読点']
+      ];
+      return blocks.find(([min, max]) => code >= min && code <= max)?.[2] || '';
     };
 
     const isPrimaryResult = (data, inputUcs, inputIvs, inputMjName) =>
       inputMjName ? data['MJ文字図形名'] === inputMjName
         : inputIvs ? data['実装したMoji_JohoコレクションIVS'] === inputIvs
           : data['実装したUCS'] === inputUcs;
+
+    const trackSearch = (term) => {
+      if (typeof gtag !== 'undefined') gtag('event', 'search', { search_term: term });
+    };
+
+    // ============================================================
+    // Tooltip
+    // ============================================================
+    const tooltip = (() => {
+      let el = null;
+      const getEl = () => {
+        if (!el) {
+          el = document.createElement('div');
+          el.className = 'network-tooltip';
+          el.style.display = 'none';
+          document.body.appendChild(el);
+        }
+        return el;
+      };
+      const setPos = (e) => { const t = getEl(); t.style.left = `${e.clientX + 12}px`; t.style.top = `${e.clientY - 10}px`; };
+      return {
+        show: (e, html) => { const t = getEl(); t.innerHTML = html; t.style.display = 'block'; setPos(e); },
+        move: setPos,
+        hide: () => { if (el) el.style.display = 'none'; }
+      };
+    })();
+
+    // ============================================================
+    // Database
+    // ============================================================
+    const SQL_COLUMNS = MJ_FIELDS.filter(f => !f.computed).map(f => `"${f.key}"`).join(', ');
+
+    const mapQueryResult = (result) => result.toArray().map(row => {
+      const data = {};
+      MJ_FIELDS.filter(f => !f.computed).forEach(f => data[f.key] = row[f.key]);
+      data.font = row.font;
+      data['X0213_level'] = calcJisLevel(data['X0213']);
+      data['UnicodeBlock'] = getUnicodeBlock(data['対応するUCS']);
+      return data;
+    });
+
+    const runMjiQuery = async ({ where, distinct = false, limit = null }) => {
+      if (!conn || !where) return [];
+      const sql = `SELECT ${distinct ? 'DISTINCT ' : ''}${SQL_COLUMNS}, font FROM mji WHERE ${where}${limit ? ` LIMIT ${limit}` : ''}`;
+      return mapQueryResult(await conn.query(sql));
+    };
+
+    const initDuckDB = async () => {
+      const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
+      const workerUrl = URL.createObjectURL(new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' }));
+      const db = new duckdb.AsyncDuckDB(new duckdb.ConsoleLogger(), new Worker(workerUrl));
+      await db.instantiate(bundle.mainModule);
+      URL.revokeObjectURL(workerUrl);
+      conn = await db.connect();
+      const csv = await (await fetch('mji.00602.csv')).arrayBuffer();
+      await db.registerFileBuffer('mji.csv', new Uint8Array(csv));
+      await conn.query(`CREATE TABLE mji AS SELECT * FROM read_csv_auto('mji.csv')`);
+    };
+
+    const initShrinkMap = async () => {
+      const data = await (await fetch('MJShrinkMapVer.1.2.0/MJShrinkMap.1.2.0.json')).json();
+      shrinkMap = new Map(data.content.map(e => [e.MJ文字図形名, e]));
+      ucsToMjNames = new Map();
+      for (const entry of data.content) {
+        const mjName = entry.MJ文字図形名;
+        for (const { key } of SHRINK_FIELDS) {
+          for (const item of entry[key] || []) {
+            if (item.UCS) {
+              if (!ucsToMjNames.has(item.UCS)) ucsToMjNames.set(item.UCS, []);
+              if (!ucsToMjNames.get(item.UCS).includes(mjName)) ucsToMjNames.get(item.UCS).push(mjName);
+            }
+          }
+        }
+      }
+    };
+
+    // ============================================================
+    // Queries
+    // ============================================================
+    const queryByUcs = (ucs, ivs = null) => {
+      if (!ucs) return Promise.resolve([]);
+      const ivsCondition = ivs ? ` OR "実装したMoji_JohoコレクションIVS" = ${quoteSql(ivs)}` : '';
+      const q = quoteSql(ucs);
+      return runMjiQuery({
+        where: `"対応するUCS" IN (SELECT "対応するUCS" FROM mji WHERE "対応するUCS" = ${q} OR "実装したUCS" = ${q}${ivsCondition})`
+      });
+    };
+
+    const queryByMjName = (name) => runMjiQuery({
+      where: `"対応するUCS" IN (SELECT "対応するUCS" FROM mji WHERE "MJ文字図形名" = ${quoteSql(name)})`
+    });
+
+    const queryByReading = (reading) => {
+      const hira = reading.replace(/[\u30A0-\u30FF]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+      const kata = reading.replace(/[\u3040-\u309F]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+      const [h, k] = [escapeSql(hira), escapeSql(kata)];
+      return runMjiQuery({
+        distinct: true, limit: CONFIG.queryLimit,
+        where: `"読み(参考)" LIKE '${h}%' OR "読み(参考)" LIKE '${k}%' OR "読み(参考)" LIKE '%・${h}%' OR "読み(参考)" LIKE '%・${k}%'`
+      });
+    };
+
+    const queryAllByUcsList = (list) => list.length ? runMjiQuery({ where: `"対応するUCS" IN (${buildInClause(list)})` }) : [];
+    const queryAllByMjNames = (list) => list.length ? runMjiQuery({ where: `"MJ文字図形名" IN (${buildInClause(list)})` }) : [];
+
+    // ============================================================
+    // Shrink Map Helpers
+    // ============================================================
+    const getRelatedUcs = (mjName) => {
+      const entry = shrinkMap?.get(mjName);
+      if (!entry) return [];
+      const set = new Set();
+      SHRINK_FIELDS.forEach(({ key }) => (entry[key] || []).forEach(item => item.UCS && set.add(item.UCS)));
+      return [...set];
+    };
+
+    const collectRelatedMjNames = (startMjNames, maxDepth) => {
+      const mjHops = new Map(), mjParent = new Map(), allUcs = new Set();
+      const queue = startMjNames.map(mj => ({ mj, hop: 0, parent: null }));
+      while (queue.length) {
+        const { mj, hop, parent } = queue.shift();
+        if (mjHops.has(mj) || hop >= maxDepth) continue;
+        mjHops.set(mj, hop);
+        mjParent.set(mj, parent);
+        for (const ucs of getRelatedUcs(mj)) {
+          allUcs.add(ucs);
+          (ucsToMjNames?.get(ucs) || []).forEach(other => {
+            if (!mjHops.has(other)) queue.push({ mj: other, hop: hop + 1, parent: mj });
+          });
+        }
+      }
+      return { mjNames: [...mjHops.keys()], mjHops, mjParent, relatedUcs: [...allUcs] };
+    };
+
+    const collectRelatedEdges = (mjNames) => {
+      const edges = [], ucsSet = new Set();
+      mjNames.forEach(mjName => {
+        const entry = shrinkMap?.get(mjName);
+        if (!entry) return;
+        SHRINK_FIELDS.forEach(({ key, id }) => {
+          (entry[key] || []).forEach(item => {
+            if (item.UCS) { ucsSet.add(item.UCS); edges.push({ from: mjName, to: item.UCS, type: id }); }
+          });
+        });
+      });
+      return { edges, ucsNodes: [...ucsSet] };
+    };
+
+    // ============================================================
+    // History
+    // ============================================================
+    const getHistory = () => {
+      try {
+        return (JSON.parse(localStorage.getItem(CONFIG.historyKey)) || [])
+          .map(item => typeof item === 'string' ? { char: item, mjName: null } : item);
+      } catch { return []; }
+    };
+
+    const addToHistory = (char, mjName = null) => {
+      if (!char || isMjName(char) || isReading(char)) return;
+      const history = getHistory().filter(i => !(i.char === char && i.mjName === mjName));
+      history.unshift({ char, mjName });
+      if (history.length > CONFIG.maxHistory) history.pop();
+      localStorage.setItem(CONFIG.historyKey, JSON.stringify(history));
+      renderHistory();
+    };
+
+    const renderHistory = () => {
+      const history = getHistory();
+      dom.historySection.hidden = !history.length;
+      dom.historyList.textContent = '';
+      history.forEach(({ char, mjName }) => {
+        dom.historyList.appendChild(createCharItem(char, mjName, { small: true, onClick: () => setInputAndUpdate(char) }));
+      });
+    };
+
+    // ============================================================
+    // UI Components
+    // ============================================================
+    const createCharItem = (char, mjName, { small, showLabel, onClick } = {}) => {
+      const li = document.createElement('li');
+      li.className = `char-item${small ? ' small' : ''}`;
+      li.title = char;
+      const imgUrl = getMjImageUrl(mjName);
+      const label = showLabel ? `<small style="font-size:0.6rem;color:var(--pico-muted-color)">${mjName}</small>` : '';
+      li.innerHTML = imgUrl
+        ? `<img src="${imgUrl}" alt="${mjName}" class="mj-img" style="height:${small ? '1.5' : '2'}rem">${label}`
+        : `<span class="char">${char}</span>${label}`;
+      if (onClick) li.addEventListener('click', onClick);
+      return li;
+    };
+
+    const copyToClipboard = async (text, btn) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.innerHTML = ICONS.check;
+        btn.classList.add('copied');
+        setTimeout(() => { btn.innerHTML = ICONS.copy; btn.classList.remove('copied'); }, 1500);
+      } catch (e) { console.error('Copy failed:', e); }
+    };
+
+    const getCopyChar = (data, fallback) => {
+      const ivs = data['実装したMoji_JohoコレクションIVS'];
+      if (ivs) {
+        const [base, vs] = ivs.split('_');
+        return String.fromCodePoint(parseInt(base, 16), parseInt(vs, 16));
+      }
+      return getDisplayChar(data, fallback);
+    };
 
     const createClickableUcs = (value) => {
       const span = document.createElement('span');
@@ -664,686 +662,514 @@
       return span;
     };
 
-    const createHeaderCellHtml = (mjName, imgUrl, displayChar, isPrimary = false) => {
-      if (imgUrl) {
-        const imgClass = isPrimary ? 'mj-img mj-img-primary' : 'mj-img';
-        return `<img src="${imgUrl}" alt="${mjName}" class="${imgClass}" style="height:2.5rem;vertical-align:middle;"><div style="font-size:0.7rem">${mjName}</div>`;
-      }
-      return `<div style="font-size:1.5rem">${displayChar}</div><div style="font-size:0.7rem">${mjName || ''}</div>`;
+    // ============================================================
+    // Table Rendering
+    // ============================================================
+    const clearTable = () => { dom.variantsHeader.textContent = ''; dom.variantsBody.textContent = ''; };
+
+    const createHeaderRow = (columns) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<th>項目</th>';
+      columns.forEach(col => {
+        const th = document.createElement('th');
+        const imgClass = col.isPrimary ? 'mj-img mj-img-primary' : 'mj-img';
+        th.innerHTML = col.imgUrl
+          ? `<img src="${col.imgUrl}" alt="${col.mjName}" class="${imgClass}" style="height:2.5rem;vertical-align:middle;"><div style="font-size:0.7rem">${col.mjName}</div>`
+          : `<div style="font-size:1.5rem">${col.displayChar}</div><div style="font-size:0.7rem">${col.mjName || ''}</div>`;
+        if (col.onClick) { th.style.cursor = 'pointer'; th.addEventListener('click', col.onClick); }
+        if (col.copyText) {
+          const btn = document.createElement('button');
+          btn.className = 'copy-btn';
+          btn.innerHTML = ICONS.copy;
+          btn.addEventListener('click', (e) => { e.stopPropagation(); copyToClipboard(col.copyText, btn); });
+          th.appendChild(btn);
+        }
+        tr.appendChild(th);
+      });
+      return tr;
+    };
+
+    const appendValueCell = (tr, value, { clickable, matchClass } = {}) => {
+      const td = document.createElement('td');
+      clickable ? td.appendChild(createClickableUcs(value)) : td.textContent = value;
+      if (matchClass) td.classList.add(matchClass);
+      tr.appendChild(td);
     };
 
     const renderVariantsTable = (results, char, inputUcs, inputIvs = null, inputMjName = null) => {
       clearTable();
+      const columns = results.map(data => {
+        const mjName = data['MJ文字図形名'], displayChar = getDisplayChar(data, char);
+        return {
+          mjName, displayChar, imgUrl: getMjImageUrl(mjName),
+          isPrimary: isPrimaryResult(data, inputUcs, inputIvs, inputMjName),
+          copyText: getCopyChar(data, char),
+          onClick: (e) => { if (!e.target.closest('.copy-btn')) setInputAndUpdate(displayChar); }
+        };
+      });
+      dom.variantsHeader.appendChild(createHeaderRow(columns));
 
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>項目</th>';
-
-      for (const data of results) {
-        const th = document.createElement('th');
-        const mjName = data['MJ文字図形名'];
-        const isPrimary = isPrimaryResult(data, inputUcs, inputIvs, inputMjName);
-        const displayChar = getDisplayChar(data, char);
-        th.innerHTML = createHeaderCellHtml(mjName, getMjImageUrl(mjName), displayChar, isPrimary);
-
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-btn';
-        copyBtn.innerHTML = ICON_COPY;
-        copyBtn.addEventListener('click', () => copyToClipboard(getCopyChar(data, char), copyBtn));
-        th.appendChild(copyBtn);
-        headerRow.appendChild(th);
-      }
-      variantsHeader.appendChild(headerRow);
-
-      const primaryIndex = results.findIndex((d) => isPrimaryResult(d, inputUcs, inputIvs, inputMjName));
+      const primaryIdx = results.findIndex(d => isPrimaryResult(d, inputUcs, inputIvs, inputMjName));
       const clickableFields = ['対応する互換漢字', '対応するUCS', '実装したUCS'];
 
-      for (const field of MJ_FIELDS) {
-        const values = results.map((d) => formatValue(d[field.key]));
+      MJ_FIELDS.forEach(field => {
+        const values = results.map(d => formatValue(d[field.key]));
         const tr = document.createElement('tr');
         tr.innerHTML = `<th>${field.label}</th>`;
+        const primaryVal = primaryIdx >= 0 ? values[primaryIdx] : null;
+        values.forEach(v => {
+          const clickable = clickableFields.includes(field.key) && v !== '-' && v.startsWith('U+');
+          const matchClass = results.length > 1 && primaryVal !== null ? (v === primaryVal ? 'match' : 'diff') : null;
+          appendValueCell(tr, v, { clickable, matchClass });
+        });
+        dom.variantsBody.appendChild(tr);
+      });
+    };
 
-        const primaryValue = primaryIndex >= 0 ? values[primaryIndex] : null;
+    const renderCompareTable = (results1, results2, char1, char2, ucs1, ivs1, ucs2, ivs2) => {
+      clearTable();
+      const findPrimary = (results, ucs, ivs) =>
+        (ivs && results.find(d => d['実装したMoji_JohoコレクションIVS'] === ivs)) ||
+        results.find(d => d['実装したUCS'] === ucs) || results[0];
 
-        for (const value of values) {
-          const td = document.createElement('td');
-          if (clickableFields.includes(field.key) && value !== '-' && value.startsWith('U+')) {
-            td.appendChild(createClickableUcs(value));
-          } else {
-            td.textContent = value;
-          }
-          if (results.length > 1 && primaryValue !== null) {
-            td.classList.add(value === primaryValue ? 'match' : 'diff');
-          }
-          tr.appendChild(td);
-        }
-        variantsBody.appendChild(tr);
-      }
+      const [data1, data2] = [findPrimary(results1, ucs1, ivs1), findPrimary(results2, ucs2, ivs2)];
+      const columns = [[data1, char1], [data2, char2]].map(([data, char]) => ({
+        mjName: data['MJ文字図形名'],
+        displayChar: getDisplayChar(data, char),
+        imgUrl: getMjImageUrl(data['MJ文字図形名']),
+        onClick: () => setInputAndUpdate(getDisplayChar(data, char))
+      }));
+      dom.variantsHeader.appendChild(createHeaderRow(columns));
+
+      MJ_FIELDS.forEach(field => {
+        const [v1, v2] = [formatValue(data1[field.key]), formatValue(data2[field.key])];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<th>${field.label}</th>`;
+        const matchClass = v1 === v2 ? 'match' : 'diff';
+        appendValueCell(tr, v1, { matchClass });
+        appendValueCell(tr, v2, { matchClass });
+        dom.variantsBody.appendChild(tr);
+      });
     };
 
     const renderCandidates = (results, reading) => {
-      candidatesList.textContent = '';
-      candidatesLabel.textContent = `「${reading}」の検索結果 (${results.length}件):`;
-
-      for (const data of results) {
-        const li = document.createElement('li');
-        li.className = 'char-item';
+      dom.candidatesList.textContent = '';
+      dom.candidatesLabel.textContent = `「${reading}」の検索結果 (${results.length}件):`;
+      results.forEach(data => {
         const displayChar = getDisplayChar(data);
-        const mjName = data['MJ文字図形名'] || '';
-        const imgUrl = getMjImageUrl(mjName);
-
-        if (imgUrl) {
-          li.innerHTML = `<img src="${imgUrl}" alt="${mjName}" class="mj-img" style="height:2rem"><small style="font-size:0.6rem;color:var(--pico-muted-color)">${mjName}</small>`;
-        } else {
-          li.innerHTML = `<span class="char">${displayChar}</span><small style="font-size:0.6rem;color:var(--pico-muted-color)">${mjName}</small>`;
-        }
-        li.addEventListener('click', () => setInputAndUpdate(displayChar));
-        candidatesList.appendChild(li);
-      }
+        dom.candidatesList.appendChild(createCharItem(displayChar, data['MJ文字図形名'], {
+          showLabel: true, onClick: () => setInputAndUpdate(displayChar)
+        }));
+      });
     };
 
-    // 縮退マップから関連MJ文字図形名を収集（MJ文字図形名ベース）
-    const collectRelatedMjNames = (startMjNames, maxDepth = 2) => {
-      const visitedMj = new Set();
-      const allUcs = new Set();
-
-      const processQueue = [...startMjNames];
-
-      for (let depth = 0; depth < maxDepth && processQueue.length > 0; depth++) {
-        const currentBatch = processQueue.splice(0, processQueue.length);
-
-        for (const mjName of currentBatch) {
-          if (visitedMj.has(mjName)) continue;
-          visitedMj.add(mjName);
-
-          const relatedUcsList = getRelatedUcs(mjName);
-          for (const ucs of relatedUcsList) {
-            allUcs.add(ucs);
-
-            if (ucsToMjNames) {
-              const otherMjNames = ucsToMjNames.get(ucs) || [];
-              for (const otherMj of otherMjNames) {
-                if (!visitedMj.has(otherMj)) {
-                  processQueue.push(otherMj);
-                }
-              }
-            }
-          }
-        }
-      }
-
-      return { mjNames: [...visitedMj], relatedUcs: [...allUcs] };
-    };
-
-    // 縮退マップから関連エッジを収集（ネットワーク図用）
-    const collectRelatedEdges = (mjNames) => {
-      const edges = [];
-      const ucsSet = new Set();
-
-      for (const mjName of mjNames) {
-        if (!shrinkMap) continue;
-        const entry = shrinkMap.get(mjName);
-        if (!entry) continue;
-
-        for (const { key, label } of SHRINK_FIELDS) {
-          if (entry[key]) {
-            for (const item of entry[key]) {
-              if (item.UCS) {
-                ucsSet.add(item.UCS);
-                edges.push({ from: mjName, to: item.UCS, type: label });
-              }
-            }
-          }
-        }
-      }
-
-      return { edges, ucsNodes: [...ucsSet] };
-    };
-
-    // 複数のUCSから全MJ文字図形を取得
-    const queryAllByUcsList = async (ucsList) => {
-      if (!conn || ucsList.length === 0) return [];
-      const ucsConditions = ucsList.map(ucs => `'${ucs}'`).join(', ');
-      const result = await conn.query(`
-        SELECT ${SQL_COLUMNS}, font FROM mji
-        WHERE "対応するUCS" IN (${ucsConditions})
-      `);
-      return mapQueryResult(result);
-    };
-
-    // 複数のMJ文字図形名から全データを取得
-    const queryAllByMjNames = async (mjNames) => {
-      if (!conn || mjNames.length === 0) return [];
-      const mjConditions = mjNames.map(mj => `'${mj}'`).join(', ');
-      const result = await conn.query(`
-        SELECT ${SQL_COLUMNS}, font FROM mji
-        WHERE "MJ文字図形名" IN (${mjConditions})
-      `);
-      return mapQueryResult(result);
-    };
-
+    // ============================================================
+    // Network Graph
+    // ============================================================
     const renderRelated = async (results, inputUcs, inputIvs, inputMjName) => {
-      // 関連MJ文字図形名と関連UCSを収集（縮退マップベース）
-      const currentMjNames = results.map(d => d['MJ文字図形名']).filter(Boolean);
-      const { mjNames: relatedMjNames, relatedUcs } = collectRelatedMjNames(currentMjNames);
-      const currentUcs = results.map(d => d['対応するUCS']).filter(Boolean);
-      const allUcs = [...new Set([...currentUcs, ...relatedUcs])];
+      lastRelatedParams = { results, inputUcs, inputIvs, inputMjName };
 
-      const hasRelated = relatedMjNames.length > 0 || allUcs.length > 0;
-      relatedSection.hidden = !hasRelated;
+      const currentMjNames = results.map(d => d['MJ文字図形名']).filter(Boolean);
+      const hopDepth = parseInt(dom.hopDepth.value, 10) || 3;
+      const { mjNames: relatedMjNames, mjHops, mjParent, relatedUcs } = collectRelatedMjNames(currentMjNames, hopDepth);
+      const allUcs = [...new Set([...results.map(d => d['対応するUCS']).filter(Boolean), ...relatedUcs])];
+
+      const hasRelated = relatedMjNames.length || allUcs.length;
+      dom.relatedSection.hidden = !hasRelated;
       if (!hasRelated) return;
 
-      // 縮退マップのMJ文字図形名 + 関連UCSの対応するUCSで全データを取得
       const [mjResults, ucsResults] = await Promise.all([
         queryAllByMjNames([...new Set([...currentMjNames, ...relatedMjNames])]),
         queryAllByUcsList(allUcs)
       ]);
+      const allResults = [...new Map([...mjResults, ...ucsResults].map(r => [r['MJ文字図形名'], r])).values()];
+      if (!allResults.length || typeof d3 === 'undefined') return;
 
-      // 重複を除去して統合
-      const seenMjNames = new Set();
-      const allResults = [];
-      for (const r of [...mjResults, ...ucsResults]) {
-        if (!seenMjNames.has(r['MJ文字図形名'])) {
-          seenMjNames.add(r['MJ文字図形名']);
-          allResults.push(r);
+      const { edges: shrinkEdges } = collectRelatedEdges(allResults.map(r => r['MJ文字図形名']));
+      const ucsToMjMap = new Map();
+      allResults.forEach(r => {
+        const ucs = r['対応するUCS'];
+        if (!ucsToMjMap.has(ucs)) ucsToMjMap.set(ucs, []);
+        ucsToMjMap.get(ucs).push(r);
+      });
+
+      const primaryResult = results.find(d => isPrimaryResult(d, inputUcs, inputIvs, inputMjName));
+      const searchedMjSet = new Set(primaryResult ? [primaryResult['MJ文字図形名']] : []);
+
+      // Create nodes
+      const nodes = [], nodeMap = new Map();
+      for (const [ucs, mjList] of ucsToMjMap) {
+        for (const mj of mjList) {
+          const mjName = mj['MJ文字図形名'], isSearched = searchedMjSet.has(mjName);
+          const node = {
+            id: mjName, ucs, ivs: mj['実装したMoji_JohoコレクションIVS'],
+            displayChar: ivsToChar(mj['実装したMoji_JohoコレクションIVS']) || ucsToChar(mj['実装したUCS'] || ucs),
+            imgUrl: getMjImageUrl(mjName), isSearched,
+            hop: mjHops.get(mjName) ?? 0, parent: mjParent.get(mjName) ?? null,
+            color: isSearched ? CONFIG.colors.primary : CONFIG.colors.related,
+            size: isSearched ? 48 : 32
+          };
+          nodes.push(node);
+          nodeMap.set(mjName, node);
         }
       }
 
-      // ネットワーク図を生成（D3.js）
-      const networkGraph = document.getElementById('network-graph');
-      if (networkGraph && allResults.length > 0 && typeof d3 !== 'undefined') {
-        const { edges: shrinkEdges } = collectRelatedEdges(allResults.map(r => r['MJ文字図形名']));
-
-        // UCSごとにMJ文字図形をグループ化
-        const ucsToMjMap = new Map();
-        for (const r of allResults) {
-          const ucs = r['対応するUCS'];
-          if (!ucsToMjMap.has(ucs)) {
-            ucsToMjMap.set(ucs, []);
-          }
-          ucsToMjMap.get(ucs).push(r);
-        }
-
-        // 検索した文字を特定
-        const primaryResult = results.find(d => isPrimaryResult(d, inputUcs, inputIvs, inputMjName));
-        const primaryMjName = primaryResult ? primaryResult['MJ文字図形名'] : null;
-        const searchedMjSet = new Set(primaryMjName ? [primaryMjName] : []);
-        const primaryColor = '#1976d2';
-        const relatedColor = '#9e9e9e';
-
-        // ツールチップ要素を作成
-        let tooltip = document.querySelector('.network-tooltip');
-        if (!tooltip) {
-          tooltip = document.createElement('div');
-          tooltip.className = 'network-tooltip';
-          tooltip.style.display = 'none';
-          document.body.appendChild(tooltip);
-        }
-        const showTooltip = (event, html) => {
-          tooltip.innerHTML = html;
-          tooltip.style.display = 'block';
-          tooltip.style.left = `${event.clientX + 12}px`;
-          tooltip.style.top = `${event.clientY - 10}px`;
-        };
-        const moveTooltip = (event) => {
-          tooltip.style.left = `${event.clientX + 12}px`;
-          tooltip.style.top = `${event.clientY - 10}px`;
-        };
-        const hideTooltip = () => { tooltip.style.display = 'none'; };
-
-        // ノードデータを作成
-        const nodes = [];
-        const nodeMap = new Map();
-        for (const [ucs, mjList] of ucsToMjMap) {
-          for (const mj of mjList) {
-            const mjName = mj['MJ文字図形名'];
-            const isSearched = searchedMjSet.has(mjName);
-            const node = {
-              id: mjName,
-              ucs: ucs,
-              imgUrl: getMjImageUrl(mjName),
-              isSearched,
-              color: isSearched ? primaryColor : relatedColor,
-              size: isSearched ? 48 : 32
-            };
-            nodes.push(node);
-            nodeMap.set(mjName, node);
-          }
-        }
-
-        // エッジデータを作成
-        const links = [];
-        const mjEdgeSet = new Set();
-        for (const edge of shrinkEdges) {
-          const fromMj = edge.from;
-          const toUcs = edge.to;
-          const edgeColor = EDGE_COLORS[edge.type] || '#999';
-          const toMjList = ucsToMjMap.get(toUcs) || [];
-          for (const toMjData of toMjList) {
-            const toMj = toMjData['MJ文字図形名'];
-            if (fromMj !== toMj && nodeMap.has(fromMj) && nodeMap.has(toMj)) {
-              const edgeKey = [fromMj, toMj].sort().join('-') + '-' + edge.type;
-              if (!mjEdgeSet.has(edgeKey)) {
-                mjEdgeSet.add(edgeKey);
-                links.push({
-                  source: fromMj,
-                  target: toMj,
-                  type: edge.type,
-                  color: edgeColor
-                });
-              }
-            }
-          }
-        }
-
-        // SVGをクリア＆作成
-        networkGraph.innerHTML = '';
-        const width = networkGraph.clientWidth;
-        const height = Math.min(width * 0.6, 600);
-        networkGraph.style.height = `${height}px`;
-        const centerX = width / 2;
-        const centerY = height / 2;
-
-        const svg = d3.select(networkGraph)
-          .append('svg')
-          .attr('width', width)
-          .attr('height', height)
-          .attr('viewBox', [0, 0, width, height]);
-
-        // ズーム・パン対応
-        const g = svg.append('g');
-        svg.call(d3.zoom()
-          .scaleExtent([0.3, 3])
-          .on('zoom', (event) => g.attr('transform', event.transform)));
-
-        // 矢印マーカー定義
-        const defs = svg.append('defs');
-        Object.entries(EDGE_COLORS).forEach(([type, color]) => {
-          defs.append('marker')
-            .attr('id', `arrow-${type}`)
-            .attr('viewBox', '0 -5 10 10')
-            .attr('refX', 12)
-            .attr('refY', 0)
-            .attr('markerWidth', 5)
-            .attr('markerHeight', 5)
-            .attr('orient', 'auto')
-            .append('path')
-            .attr('d', 'M0,-5L10,0L0,5')
-            .attr('fill', color);
-        });
-
-        // Force simulation
-        const simulation = d3.forceSimulation(nodes)
-          .force('link', d3.forceLink(links).id(d => d.id).distance(120).strength(0.5))
-          .force('charge', d3.forceManyBody().strength(-300))
-          .force('x', d3.forceX(centerX).strength(0.05))
-          .force('y', d3.forceY(centerY).strength(0.05))
-          .force('collision', d3.forceCollide().radius(d => d.size + 10));
-
-        // 検索文字を中央に固定
-        nodes.forEach(node => {
-          if (node.isSearched) {
-            node.fx = centerX;
-            node.fy = centerY;
-          }
-        });
-
-        // エッジ描画（曲線）+ 出現アニメーション
-        const link = g.append('g')
-          .attr('class', 'links')
-          .selectAll('path')
-          .data(links)
-          .join('path')
-          .attr('stroke', d => d.color)
-          .attr('stroke-width', 2)
-          .attr('stroke-opacity', 0)
-          .attr('fill', 'none')
-          .attr('marker-end', d => `url(#arrow-${d.type})`)
-          .attr('stroke-dasharray', '5,3');
-
-        // エッジの出現アニメーション
-        link.transition()
-          .delay((d, i) => Math.min(i * 5, 100))
-          .duration(300)
-          .attr('stroke-opacity', 0.6);
-
-        // ノード描画（画像 + 枠線）
-        const node = g.append('g')
-          .attr('class', 'nodes')
-          .selectAll('g')
-          .data(nodes)
-          .join('g')
-          .attr('cursor', 'pointer')
-          .call(d3.drag()
-            .on('start', (event, d) => {
-              if (!event.active) simulation.alphaTarget(0.3).restart();
-              d.fx = d.x;
-              d.fy = d.y;
-            })
-            .on('drag', (event, d) => {
-              d.fx = event.x;
-              d.fy = event.y;
-            })
-            .on('end', (event, d) => {
-              if (!event.active) simulation.alphaTarget(0);
-              if (!d.isSearched) {
-                d.fx = null;
-                d.fy = null;
-              }
-            }));
-
-        // 枠線（円）
-        node.append('circle')
-          .attr('r', d => d.size / 2 + 3)
-          .attr('fill', '#fff')
-          .attr('stroke', d => d.color)
-          .attr('stroke-width', d => d.isSearched ? 4 : 2);
-
-        // 画像（clipPathで丸く切り抜き）
-        node.each(function (d, i) {
-          const clipId = `clip-${d.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
-          defs.append('clipPath')
-            .attr('id', clipId)
-            .append('circle')
-            .attr('r', d.size / 2);
-
-          d3.select(this).append('image')
-            .attr('xlink:href', d.imgUrl)
-            .attr('x', -d.size / 2)
-            .attr('y', -d.size / 2)
-            .attr('width', d.size)
-            .attr('height', d.size)
-            .attr('clip-path', `url(#${clipId})`);
-        });
-
-        // ホバー時のハイライト＋ツールチップ
-        node.on('mouseenter', function (event, d) {
-          const isConnected = l => l.source.id === d.id || l.target.id === d.id;
-          const connectedIds = new Set([d.id]);
-          const connectedEdges = [];
-          link.each(function (l) {
-            if (isConnected(l)) {
-              connectedIds.add(l.source.id);
-              connectedIds.add(l.target.id);
-              connectedEdges.push(l);
-            }
+      // Create links
+      const links = [], seen = new Set();
+      shrinkEdges.forEach(({ from, to: toUcs, type }) => {
+        (ucsToMjMap.get(toUcs) || []).forEach(toData => {
+          const toMj = toData['MJ文字図形名'];
+          if (from === toMj || !nodeMap.has(from) || !nodeMap.has(toMj)) return;
+          const key = [from, toMj].sort().join('-') + '-' + type;
+          if (seen.has(key)) return;
+          seen.add(key);
+          links.push({
+            source: nodeMap.get(from), target: nodeMap.get(toMj), type,
+            color: EDGE_COLORS[type] || '#999',
+            hop: Math.max(nodeMap.get(from)?.hop ?? 0, nodeMap.get(toMj)?.hop ?? 0)
           });
+        });
+      });
 
-          link.transition().duration(200)
-            .attr('stroke-opacity', l => isConnected(l) ? 1 : 0.1)
-            .attr('stroke-width', l => isConnected(l) ? 3 : 1);
-          node.select('circle').transition().duration(200).attr('opacity', n => connectedIds.has(n.id) ? 1 : 0.3);
-          node.select('image').transition().duration(200).attr('opacity', n => connectedIds.has(n.id) ? 1 : 0.3);
-          d3.select(this).raise().select('circle').transition().duration(150).attr('r', d.size / 2 + 6);
+      // Setup SVG
+      dom.networkGraph.innerHTML = '';
+      const width = dom.networkGraph.clientWidth;
+      const height = networkGraphHeight || Math.round(window.innerHeight * 0.5);
+      dom.networkGraph.style.height = `${height}px`;
+      const [centerX, centerY] = [width / 2, height / 2];
 
-          // ツールチップ表示
-          const types = [...new Set(connectedEdges.map(e => e.type))];
-          showTooltip(event, `<strong>${d.id}</strong>${types.length ? `<br><span style="color:#aaa">${types.join(' / ')}</span>` : ''}`);
-        })
-          .on('mousemove', moveTooltip)
-          .on('mouseleave', function (event, d) {
-            link.transition().duration(200).attr('stroke-opacity', 0.6).attr('stroke-width', 2);
-            node.select('circle').transition().duration(200).attr('opacity', 1);
-            node.select('image').transition().duration(200).attr('opacity', 1);
-            d3.select(this).select('circle').transition().duration(150).attr('r', d.size / 2 + 3);
-            hideTooltip();
+      const svg = d3.select(dom.networkGraph).append('svg')
+        .attr('width', width).attr('height', height).attr('viewBox', [0, 0, width, height]);
+      const g = svg.append('g');
+      svg.call(d3.zoom().scaleExtent([0.3, 3]).on('zoom', e => g.attr('transform', e.transform)));
+
+      // Arrow markers
+      const defs = svg.append('defs');
+      Object.entries(EDGE_COLORS).forEach(([type, color]) => {
+        defs.append('marker').attr('id', `arrow-${type}`).attr('viewBox', '0 -5 10 10')
+          .attr('refX', 12).attr('refY', 0).attr('markerWidth', 5).attr('markerHeight', 5).attr('orient', 'auto')
+          .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', color);
+      });
+
+      // Layout nodes in concentric circles
+      const hopRadius = 100, hopGroups = new Map();
+      nodes.forEach(n => { if (!hopGroups.has(n.hop)) hopGroups.set(n.hop, []); hopGroups.get(n.hop).push(n); });
+      hopGroups.forEach((group, hop) => {
+        const radius = hop * hopRadius, step = (2 * Math.PI) / group.length;
+        group.forEach((n, i) => {
+          const angle = step * i - Math.PI / 2;
+          n.x = centerX + radius * Math.cos(angle);
+          n.y = centerY + radius * Math.sin(angle);
+          if (n.isSearched) { n.fx = centerX; n.fy = centerY; }
+        });
+      });
+
+      // Simulation
+      const simulation = d3.forceSimulation(nodes).force('collision', d3.forceCollide().radius(d => d.size + 5)).stop();
+      for (let i = 0; i < 50; i++) simulation.tick();
+
+      const { hopDelay, trailDuration } = CONFIG.animation;
+
+      // Draw links
+      const link = g.append('g').attr('class', 'links').selectAll('path').data(links).join('path')
+        .attr('stroke', d => d.color).attr('stroke-width', 1).attr('stroke-opacity', 0)
+        .attr('fill', 'none').attr('marker-end', d => `url(#arrow-${d.type})`).attr('stroke-dasharray', '5,3');
+
+      const trailLayer = g.append('g').attr('class', 'trails');
+
+      // Draw nodes
+      const node = g.append('g').attr('class', 'nodes').selectAll('g').data(nodes).join('g')
+        .attr('cursor', 'pointer').attr('opacity', d => d.isSearched ? 1 : 0)
+        .attr('transform', d => `translate(${d.x},${d.y})`)
+        .call(d3.drag().clickDistance(5)
+          .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+          .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+          .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); if (!d.isSearched) { d.fx = null; d.fy = null; } }));
+
+      node.append('circle').attr('r', d => d.size / 2 + 3).attr('fill', '#fff')
+        .attr('stroke', d => d.color).attr('stroke-width', d => d.isSearched ? 4 : 2);
+
+      // Node images with fallback
+      node.each(function(d) {
+        const clipId = `clip-${d.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        defs.append('clipPath').attr('id', clipId).append('circle').attr('r', d.size / 2);
+        const nodeEl = d3.select(this), img = new Image();
+        img.onload = () => nodeEl.append('image').attr('xlink:href', d.imgUrl)
+          .attr('x', -d.size / 2).attr('y', -d.size / 2).attr('width', d.size).attr('height', d.size)
+          .attr('clip-path', `url(#${clipId})`);
+        img.onerror = () => nodeEl.append('text').attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
+          .attr('font-size', d.size * 0.6).attr('fill', '#333').text(d.displayChar || '?');
+        img.src = d.imgUrl;
+      });
+
+      // Trail animation
+      const maxHop = Math.max(...nodes.map(n => n.hop), 0);
+      nodes.forEach((n, idx) => {
+        if (n.isSearched) return;
+        const delay = n.hop * hopDelay;
+        const parentNode = n.parent ? nodeMap.get(n.parent) : null;
+        const [startX, startY] = parentNode ? [parentNode.x, parentNode.y] : [centerX, centerY];
+
+        const gradId = `trail-grad-${idx}`;
+        const grad = defs.append('linearGradient').attr('id', gradId).attr('gradientUnits', 'userSpaceOnUse')
+          .attr('x1', startX).attr('y1', startY).attr('x2', startX).attr('y2', startY);
+        grad.append('stop').attr('offset', '0%').attr('stop-color', n.color).attr('stop-opacity', 0);
+        grad.append('stop').attr('offset', '50%').attr('stop-color', n.color).attr('stop-opacity', 0.4);
+        grad.append('stop').attr('offset', '100%').attr('stop-color', '#fff').attr('stop-opacity', 1);
+
+        const trail = trailLayer.append('line')
+          .attr('x1', startX).attr('y1', startY).attr('x2', startX).attr('y2', startY)
+          .attr('stroke', `url(#${gradId})`).attr('stroke-width', 4).attr('stroke-linecap', 'round');
+
+        trail.transition().delay(delay).duration(trailDuration)
+          .attrTween('x2', () => d3.interpolate(startX, n.x))
+          .attrTween('y2', () => d3.interpolate(startY, n.y))
+          .on('start', function() {
+            d3.select(this).attr('stroke-opacity', 1);
+            grad.transition().duration(trailDuration).attr('x2', n.x).attr('y2', n.y);
           })
-          .on('click', (event, d) => {
-            setInputAndUpdate(d.id);
-          });
+          .transition().duration(150).attr('stroke-opacity', 0)
+          .on('end', () => { trail.remove(); grad.remove(); });
 
-        // エッジのホバーでツールチップ表示
-        link.on('mouseenter', function (event, d) {
-          d3.select(this).raise().transition().duration(150).attr('stroke-opacity', 1).attr('stroke-width', 4);
-          showTooltip(event, `<span style="color:${EDGE_COLORS[d.type] || '#888'}">${d.type}</span><br>${d.source.id} → ${d.target.id}`);
+        node.filter(d => d.id === n.id).transition().delay(delay + trailDuration * 0.8).duration(150).attr('opacity', 1);
+      });
+
+      link.transition().delay(d => d.hop * hopDelay + trailDuration).duration(300).attr('stroke-opacity', 0.6);
+      setTimeout(() => simulation.alpha(0).restart(), maxHop * hopDelay + trailDuration + 300);
+
+      // Hover handlers
+      const highlightConnections = (d, highlight) => {
+        const isConn = l => l.source.id === d.id || l.target.id === d.id;
+        const connIds = new Set([d.id]);
+        const connEdges = [];
+        link.each(l => { if (isConn(l)) { connIds.add(l.source.id); connIds.add(l.target.id); connEdges.push(l); } });
+
+        if (highlight) {
+          link.transition().duration(200).attr('stroke-opacity', l => isConn(l) ? 1 : 0.1).attr('stroke-width', l => isConn(l) ? 2 : 0.5);
+          node.transition().duration(200).attr('opacity', n => connIds.has(n.id) ? 1 : 0.3);
+        } else {
+          link.transition().duration(200).attr('stroke-opacity', 0.6).attr('stroke-width', 1);
+          node.transition().duration(200).attr('opacity', 1);
+        }
+        return connEdges;
+      };
+
+      node.on('mouseenter', function(e, d) {
+        const edges = highlightConnections(d, true);
+        d3.select(this).raise().select('circle').transition().duration(150).attr('r', d.size / 2 + 6);
+        const types = [...new Set(edges.map(ed => EDGE_LABELS[ed.type] || ed.type))];
+        tooltip.show(e, `<strong>${d.id}</strong>${types.length ? `<br><span style="color:#aaa">${types.join(' / ')}</span>` : ''}`);
+      })
+        .on('mousemove', tooltip.move)
+        .on('mouseleave', function(e, d) {
+          highlightConnections(d, false);
+          d3.select(this).select('circle').transition().duration(150).attr('r', d.size / 2 + 3);
+          tooltip.hide();
         })
-          .on('mousemove', moveTooltip)
-          .on('mouseleave', function () {
-            d3.select(this).transition().duration(150).attr('stroke-opacity', 0.6).attr('stroke-width', 2);
-            hideTooltip();
-          });
+        .on('click', (e, d) => setInputAndUpdate(d.displayChar || d.id));
 
-        // シミュレーション更新
-        simulation.on('tick', () => {
-          // 曲線エッジ（ノード境界で終端）
-          link.attr('d', d => {
-            const dx = d.target.x - d.source.x;
-            const dy = d.target.y - d.source.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist === 0) return '';
-
-            // ターゲットノードの半径分だけ手前で終わる
-            const targetRadius = nodeMap.get(d.target.id)?.size / 2 + 8 || 20;
-            const ratio = (dist - targetRadius) / dist;
-            const endX = d.source.x + dx * ratio;
-            const endY = d.source.y + dy * ratio;
-
-            const dr = dist * 0.8;
-            return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${endX},${endY}`;
-          });
-          node.attr('transform', d => `translate(${d.x},${d.y})`);
+      link.on('mouseenter', function(e, d) {
+        d3.select(this).raise().transition().duration(150).attr('stroke-opacity', 1).attr('stroke-width', 2);
+        tooltip.show(e, `<span style="color:${EDGE_COLORS[d.type] || '#888'}">${EDGE_LABELS[d.type] || d.type}</span><br>${d.source.id} → ${d.target.id}`);
+      })
+        .on('mousemove', tooltip.move)
+        .on('mouseleave', function() {
+          d3.select(this).transition().duration(150).attr('stroke-opacity', 0.6).attr('stroke-width', 1);
+          tooltip.hide();
         });
-      }
+
+      // Update positions
+      const updatePositions = () => {
+        link.attr('d', d => {
+          const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (!dist) return '';
+          const targetR = (nodeMap.get(d.target.id)?.size / 2 + 8) || 20;
+          const ratio = (dist - targetR) / dist;
+          return `M${d.source.x},${d.source.y}A${dist * 0.8},${dist * 0.8} 0 0,1 ${d.source.x + dx * ratio},${d.source.y + dy * ratio}`;
+        });
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+      };
+      updatePositions();
+      simulation.on('tick', updatePositions);
+    };
+
+    // ============================================================
+    // Main Logic
+    // ============================================================
+    const getTargetInput = () => compareMode && lastFocusedInput === dom.inputChar2 ? dom.inputChar2 : dom.inputChar;
+
+    const showEmpty = (msg) => { dom.mainEmpty.hidden = false; dom.mainEmpty.textContent = msg; };
+
+    const resetSections = () => {
+      dom.variantsSection.hidden = true;
+      dom.candidatesSection.hidden = true;
+      dom.relatedSection.hidden = true;
+    };
+
+    const setInputAndUpdate = (value) => {
+      getTargetInput().value = value;
+      updateUrl(dom.inputChar.value, dom.inputChar2.value);
+      update();
+    };
+
+    const updateUrl = (char, char2) => {
+      const url = new URL(location.href);
+      char ? url.searchParams.set('q', char) : url.searchParams.delete('q');
+      compareMode && char2 ? url.searchParams.set('q2', char2) : url.searchParams.delete('q2');
+      history.replaceState(null, '', url);
     };
 
     const update = async () => {
-      const input = inputChar.value.trim();
-      const input2 = inputChar2.value.trim();
+      const [input, input2] = [dom.inputChar.value.trim(), dom.inputChar2.value.trim()];
+      resetSections();
 
-      variantsSection.hidden = true;
-      candidatesSection.hidden = true;
-      relatedSection.hidden = true;
-
-      // 比較モードの処理
+      // Compare mode
       if (compareMode) {
-        if (!input && !input2) {
-          return showEmpty('比較する文字を入力してください');
+        if (!input && !input2) return showEmpty('比較する文字を入力してください');
+        if (!input || !input2) return showEmpty(input ? '比較する2つ目の文字を入力してください' : '比較する1つ目の文字を入力してください');
+
+        const [p1, p2] = [parseInput(input), parseInput(input2)];
+        const [c1, c2] = [getCharFromInput(input), getCharFromInput(input2)];
+        const [r1, r2] = await Promise.all([queryByUcs(p1.ucs, p1.ivs), queryByUcs(p2.ucs, p2.ivs)]);
+
+        if (!r1.length || !r2.length) {
+          return showEmpty(!r1.length && !r2.length ? '両方の文字がMJデータに見つかりません'
+            : !r1.length ? `${c1} (${p1.ucs}) はMJデータに見つかりません` : `${c2} (${p2.ucs}) はMJデータに見つかりません`);
         }
 
-        if (!input || !input2) {
-          return showEmpty(input ? '比較する2つ目の文字を入力してください' : '比較する1つ目の文字を入力してください');
-        }
-
-        // 両方の文字を検索
-        const { ucs: ucs1, ivs: ivs1 } = parseInput(input);
-        const { ucs: ucs2, ivs: ivs2 } = parseInput(input2);
-        const char1 = Array.from(input)[0] || '';
-        const char2 = Array.from(input2)[0] || '';
-
-        const [results1, results2] = await Promise.all([
-          queryByUcs(ucs1, ivs1),
-          queryByUcs(ucs2, ivs2)
-        ]);
-
-        if (results1.length === 0 || results2.length === 0) {
-          const msg = results1.length === 0 && results2.length === 0
-            ? '両方の文字がMJデータに見つかりません'
-            : results1.length === 0
-              ? `${char1} (${ucs1}) はMJデータに見つかりません`
-              : `${char2} (${ucs2}) はMJデータに見つかりません`;
-          return showEmpty(msg);
-        }
-
-        mainEmpty.hidden = true;
-        variantsSection.hidden = false;
-        renderCompareTable(results1, results2, char1, char2, ucs1, ivs1, ucs2, ivs2);
-        const primary1 = results1.find((d) => isPrimaryResult(d, ucs1, ivs1, null)) || results1[0];
-        const primary2 = results2.find((d) => isPrimaryResult(d, ucs2, ivs2, null)) || results2[0];
-        addToHistory(char1, primary1?.['MJ文字図形名']);
-        addToHistory(char2, primary2?.['MJ文字図形名']);
-        trackSearch(`${char1} vs ${char2}`);
+        dom.mainEmpty.hidden = true;
+        dom.variantsSection.hidden = false;
+        renderCompareTable(r1, r2, c1, c2, p1.ucs, p1.ivs, p2.ucs, p2.ivs);
+        [r1, r2].forEach((r, i) => {
+          const p = i ? p2 : p1, c = i ? c2 : c1;
+          const primary = r.find(d => isPrimaryResult(d, p.ucs, p.ivs, null)) || r[0];
+          addToHistory(c, primary?.['MJ文字図形名']);
+        });
+        trackSearch(`${c1} vs ${c2}`);
         return;
       }
 
-      if (!input) {
-        return showEmpty('文字を入力してください');
-      }
+      if (!input) return showEmpty('文字を入力してください');
 
-      // MJ文字図形名での検索
+      // MJ name search
       if (isMjName(input)) {
         const mjName = input.toUpperCase();
         const results = await queryByMjName(mjName);
-
-        if (results.length === 0) {
-          return showEmpty(`${mjName} はMJデータに見つかりません`);
-        }
-
-        mainEmpty.hidden = true;
-        variantsSection.hidden = false;
+        if (!results.length) return showEmpty(`${mjName} はMJデータに見つかりません`);
+        dom.mainEmpty.hidden = true;
+        dom.variantsSection.hidden = false;
         renderVariantsTable(results, null, null, null, mjName);
         await renderRelated(results, null, null, mjName);
         trackSearch(mjName);
         return;
       }
 
-      // 読みでの検索
+      // Reading search
       if (isReading(input)) {
         const results = await queryByReading(input);
-
-        if (results.length === 0) {
-          return showEmpty(`「${input}」に該当する文字が見つかりません`);
-        }
-
-        mainEmpty.hidden = true;
-        candidatesSection.hidden = false;
+        if (!results.length) return showEmpty(`「${input}」に該当する文字が見つかりません`);
+        dom.mainEmpty.hidden = true;
+        dom.candidatesSection.hidden = false;
         renderCandidates(results, input);
         trackSearch(input);
         return;
       }
 
-      // 文字での検索
+      // Character search
       const { ucs, ivs } = parseInput(input);
-      const chars = Array.from(input);
-      const char = chars[0] || '';
-
-      if (!char || !ucs) {
-        return showEmpty('文字を入力してください');
-      }
+      const char = getCharFromInput(input);
+      if (!char || !ucs) return showEmpty('文字を入力してください');
 
       const results = await queryByUcs(ucs, ivs);
+      if (!results.length) return showEmpty(`${char} (${ucs}) はMJデータに見つかりません`);
 
-      if (results.length === 0) {
-        return showEmpty(`${char} (${ucs}) はMJデータに見つかりません`);
-      }
-
-      mainEmpty.hidden = true;
-      variantsSection.hidden = false;
+      dom.mainEmpty.hidden = true;
+      dom.variantsSection.hidden = false;
       renderVariantsTable(results, char, ucs, ivs);
-      const primary = results.find((d) => isPrimaryResult(d, ucs, ivs, null)) || results[0];
+      const primary = results.find(d => isPrimaryResult(d, ucs, ivs, null)) || results[0];
       addToHistory(char, primary?.['MJ文字図形名']);
       await renderRelated(results, ucs, ivs, null);
       trackSearch(char);
     };
 
-    const renderCompareTable = (results1, results2, char1, char2, ucs1, ivs1, ucs2, ivs2) => {
-      clearTable();
+    const debouncedUpdate = debounce(update, CONFIG.debounceMs);
 
-      // IVSまたはUCSにマッチするバリアントを探す
-      const findPrimary = (results, ucs, ivs) => {
-        if (ivs) {
-          const match = results.find(d => d['実装したMoji_JohoコレクションIVS'] === ivs);
-          if (match) return match;
-        }
-        return results.find(d => d['実装したUCS'] === ucs) || results[0];
-      };
-
-      const data1 = findPrimary(results1, ucs1, ivs1);
-      const data2 = findPrimary(results2, ucs2, ivs2);
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>項目</th>';
-
-      for (const [data, char] of [[data1, char1], [data2, char2]]) {
-        const th = document.createElement('th');
-        const mjName = data['MJ文字図形名'];
-        th.innerHTML = createHeaderCellHtml(mjName, getMjImageUrl(mjName), getDisplayChar(data, char));
-        headerRow.appendChild(th);
-      }
-      variantsHeader.appendChild(headerRow);
-
-      for (const field of MJ_FIELDS) {
-        const [val1, val2] = [formatValue(data1[field.key]), formatValue(data2[field.key])];
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<th>${field.label}</th>`;
-
-        for (const val of [val1, val2]) {
-          const td = document.createElement('td');
-          td.textContent = val;
-          td.classList.add(val1 === val2 ? 'match' : 'diff');
-          tr.appendChild(td);
-        }
-        variantsBody.appendChild(tr);
-      }
-    };
-
-    const updateUrl = (char, char2 = null) => {
-      const url = new URL(location.href);
-      if (char) {
-        url.searchParams.set('q', char);
-      } else {
-        url.searchParams.delete('q');
-      }
-      if (compareMode && char2) {
-        url.searchParams.set('q2', char2);
-      } else {
-        url.searchParams.delete('q2');
-      }
-      history.replaceState(null, '', url);
-    };
-
-    const toggleCompareMode = () => {
-      compareMode = compareToggle.checked;
-      inputChar2.hidden = !compareMode;
-      compareVs.hidden = !compareMode;
-      if (!compareMode) {
-        inputChar2.value = '';
-        updateUrl(inputChar.value, null);
-      }
-      update();
-    };
-
-    compareToggle.addEventListener('change', toggleCompareMode);
-
-    const getUrlValue = (input) => {
-      const { ivs } = parseInput(input);
-      const chars = Array.from(input);
-      return ivs ? chars.slice(0, 2).join('') : (chars[0] || '');
-    };
+    // ============================================================
+    // Event Handlers
+    // ============================================================
+    dom.inputChar.addEventListener('focus', () => lastFocusedInput = dom.inputChar);
+    dom.inputChar2.addEventListener('focus', () => lastFocusedInput = dom.inputChar2);
 
     const handleInput = () => {
-      updateUrl(getUrlValue(inputChar.value), getUrlValue(inputChar2.value));
-      update();
+      updateUrl(getCharFromInput(dom.inputChar.value), getCharFromInput(dom.inputChar2.value));
+      debouncedUpdate();
     };
+    dom.inputChar.addEventListener('input', handleInput);
+    dom.inputChar2.addEventListener('input', handleInput);
 
-    inputChar.addEventListener('input', handleInput);
-    inputChar2.addEventListener('input', handleInput);
+    dom.compareToggle.addEventListener('change', () => {
+      compareMode = dom.compareToggle.checked;
+      dom.inputChar2.hidden = !compareMode;
+      dom.compareVs.hidden = !compareMode;
+      if (!compareMode) { dom.inputChar2.value = ''; updateUrl(dom.inputChar.value, null); }
+      update();
+    });
 
-    const dbStatus = document.getElementById('db-status');
+    dom.historyReset.addEventListener('click', () => { localStorage.removeItem(CONFIG.historyKey); renderHistory(); });
 
+    dom.hopDepth.addEventListener('input', () => {
+      dom.hopDepthValue.textContent = dom.hopDepth.value;
+      if (lastRelatedParams) {
+        const { results, inputUcs, inputIvs, inputMjName } = lastRelatedParams;
+        renderRelated(results, inputUcs, inputIvs, inputMjName);
+      }
+    });
+
+    // Resize handle
+    let resizeState = null;
+    dom.networkResizeHandle.addEventListener('pointerdown', e => {
+      resizeState = { startY: e.clientY, startHeight: dom.networkGraph.clientHeight };
+      dom.networkResizeHandle.setPointerCapture(e.pointerId);
+      document.body.style.cursor = 'ns-resize';
+      document.body.style.userSelect = 'none';
+    });
+    dom.networkResizeHandle.addEventListener('pointermove', e => {
+      if (!resizeState) return;
+      const newH = Math.max(200, Math.min(resizeState.startHeight + e.clientY - resizeState.startY, window.innerHeight - 100));
+      dom.networkGraph.style.height = `${newH}px`;
+      networkGraphHeight = newH;
+      const svg = dom.networkGraph.querySelector('svg');
+      if (svg) { svg.setAttribute('height', newH); svg.setAttribute('viewBox', `0 0 ${dom.networkGraph.clientWidth} ${newH}`); }
+    });
+    dom.networkResizeHandle.addEventListener('pointerup', () => {
+      resizeState = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    });
+
+    // ============================================================
+    // Initialize
+    // ============================================================
     renderHistory();
-
     Promise.all([initDuckDB(), initShrinkMap()])
       .then(() => {
-        dbStatus.removeAttribute('aria-busy');
-        dbStatus.textContent = 'MJ文字情報（約6万文字）と縮退マップを読み込みました';
-
+        dom.dbStatus.removeAttribute('aria-busy');
+        dom.dbStatus.textContent = 'MJ文字情報（約6万文字）と縮退マップを読み込みました';
         const params = new URLSearchParams(location.search);
-        const q = params.get('q');
-        const q2 = params.get('q2');
-        if (q) {
-          inputChar.value = q;
-        }
+        const [q, q2] = [params.get('q'), params.get('q2')];
+        if (q) dom.inputChar.value = q;
         if (q2) {
-          inputChar2.value = q2;
-          compareToggle.checked = true;
-          compareMode = true;
-          inputChar2.hidden = false;
-          compareVs.hidden = false;
+          dom.inputChar2.value = q2;
+          dom.compareToggle.checked = compareMode = true;
+          dom.inputChar2.hidden = dom.compareVs.hidden = false;
         }
         update();
       })
-      .catch((err) => {
+      .catch(err => {
         console.error('Init failed:', err);
-        dbStatus.removeAttribute('aria-busy');
-        dbStatus.textContent = 'データの読み込みに失敗しました: ' + err.message;
+        dom.dbStatus.removeAttribute('aria-busy');
+        dom.dbStatus.textContent = 'データの読み込みに失敗しました: ' + err.message;
       });
   </script>
 </body>
