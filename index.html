@@ -820,7 +820,7 @@
         (ucsToMjMap.get(toUcs) || []).forEach(toData => {
           const toMj = toData['MJ文字図形名'];
           if (from === toMj || !nodeMap.has(from) || !nodeMap.has(toMj)) return;
-          const key = [from, toMj].sort().join('-') + '-' + type;
+          const key = `${from}->${toMj}-${type}`;
           if (seen.has(key)) return;
           seen.add(key);
           links.push({
