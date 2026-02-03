@@ -311,7 +311,7 @@
       { key: '漢字施策', label: '漢字施策' },
       { key: '対応する互換漢字', label: '対応する互換漢字' },
       { key: '総画数(参考)', label: '総画数' },
-      { key: '部首1(参考)', label: '部首' },
+      { key: '部首', label: '部首', computed: true },
       { key: '内画数1(参考)', label: '内画数' },
       { key: '読み(参考)', label: '読み' },
     ];
@@ -440,6 +440,12 @@
       return blocks.find(([min, max]) => code >= min && code <= max)?.[2] || '';
     };
 
+    const formatRadical = (num) => {
+      const n = parseInt(num, 10);
+      if (isNaN(n) || n < 1 || n > 214) return '';
+      return String.fromCodePoint(0x2F00 + n - 1);
+    };
+
     const isPrimaryResult = (data, inputUcs, inputIvs, inputMjName) =>
       inputMjName ? data['MJ文字図形名'] === inputMjName
         : inputIvs ? data['実装したMoji_JohoコレクションIVS'] === inputIvs
@@ -474,7 +480,7 @@
     // ============================================================
     // Database
     // ============================================================
-    const SQL_COLUMNS = MJ_FIELDS.filter(f => !f.computed).map(f => `"${f.key}"`).join(', ');
+    const SQL_COLUMNS = MJ_FIELDS.filter(f => !f.computed).map(f => `"${f.key}"`).join(', ') + ', "部首1(参考)"';
 
     const mapQueryResult = (result) => result.toArray().map(row => {
       const data = {};
@@ -482,6 +488,8 @@
       data.font = row.font;
       data['X0213_level'] = calcJisLevel(data['X0213']);
       data['UnicodeBlock'] = getUnicodeBlock(data['対応するUCS']);
+      const radicalNum = row['部首1(参考)'];
+      data['部首'] = radicalNum ? `${formatRadical(radicalNum)} (${radicalNum})` : '';
       return data;
     });
 
