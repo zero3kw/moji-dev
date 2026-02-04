@@ -48,6 +48,10 @@
       align-items: center;
       gap: 0.25rem;
     }
+    .history-header h4,
+    .candidates-section > h4,
+    .variants-section > h4,
+    .related-section > h4 { margin: 0 0 0.5rem 0; }
     .history-reset-btn {
       background: transparent;
       border: none;
@@ -58,22 +62,12 @@
     }
     .history-reset-btn:hover { color: var(--pico-del-color); }
 
-    .related-header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 0.5rem;
-    }
     .hop-control {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
       font-size: 0.75rem;
       color: var(--pico-muted-color);
-      margin: 0;
+      margin: 0 0 0.5rem 0;
     }
     .hop-input { width: 240px; margin: 0; padding: 0; }
-    .hop-value { min-width: 1rem; }
 
     /* === Table === */
     .compare-table { font-size: 0.875rem; }
@@ -97,7 +91,10 @@
       background: white;
       border-radius: var(--pico-border-radius);
       padding: 0.25rem;
+      height: 2rem;
     }
+    .mj-img-sm { height: 1.5rem; }
+    .mj-img-lg { height: 2.5rem; vertical-align: middle; }
     .mj-img-primary {
       outline: 3px solid var(--pico-primary);
       outline-offset: 2px;
@@ -143,6 +140,12 @@
     .char-item.small { min-width: 2.5rem; width: 2.5rem; height: 2.5rem; justify-content: center; }
     .char-item .char { font-size: 1.5rem; }
     .char-item.small .char { font-size: 1.25rem; }
+    .char-item small { display: block; }
+
+    /* Table header cells */
+    .compare-table thead th > small { display: block; }
+    .compare-table thead .display-char { font-size: 1.5rem; }
+    .compare-table thead th.clickable { cursor: pointer; }
 
     .compare-toggle {
       display: flex;
@@ -170,7 +173,16 @@
     }
     .legend-title { font-weight: 600; }
     .legend-item { display: flex; align-items: center; gap: 0.2rem; }
-    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--dot-color, #9e9e9e);
+    }
+    .legend-dot[data-level="1"] { --dot-color: #1976d2; }
+    .legend-dot[data-level="2"] { --dot-color: #ff9800; }
+    .legend-dot[data-level="3"] { --dot-color: #4caf50; }
+    .legend-dot[data-level="4"] { --dot-color: #f44336; }
     .network-graph {
       margin-top: 0.5rem;
       width: 100%;
@@ -231,7 +243,7 @@
 
     <section id="history-section" class="history-section" hidden>
       <div class="history-header">
-        <small>最近の検索</small>
+        <h4>最近の検索</h4>
         <button id="history-reset" class="history-reset-btn" title="履歴をクリア">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -243,38 +255,36 @@
     </section>
 
     <section id="candidates-section" class="candidates-section" hidden>
-      <small id="candidates-label">読み検索結果:</small>
+      <h4 id="candidates-label">読み検索結果:</h4>
       <ul class="char-list" id="candidates-list"></ul>
     </section>
 
     <section id="main-section">
       <p id="main-empty">文字を入力してください</p>
-      <figure id="variants-section" hidden>
+      <section id="variants-section" class="variants-section" hidden>
+        <h4 id="variants-title">文字情報</h4>
         <table class="compare-table">
           <thead id="variants-header"></thead>
           <tbody id="variants-body"></tbody>
         </table>
-      </figure>
+      </section>
     </section>
 
     <section id="related-section" class="related-section" hidden>
-      <div class="related-header">
-        <small>関連する文字</small>
-        <label class="hop-control">
-          <span>深さ:</span>
-          <input type="range" id="hop-depth" class="hop-input" min="1" max="18" value="3">
-          <span id="hop-depth-value" class="hop-value">3</span>
-        </label>
-      </div>
+      <h4>関連する文字</h4>
+      <label class="hop-control">
+        <span>深さ:<span id="hop-depth-value">3</span></span>
+        <input type="range" id="hop-depth" class="hop-input" min="1" max="18" value="3">
+      </label>
+      <div id="network-graph" class="network-graph"></div>
       <div class="graph-legend">
         <span class="legend-title">JIS水準:</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#1976d2"></span>第1</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#ff9800"></span>第2</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#4caf50"></span>第3</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#f44336"></span>第4</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#9e9e9e"></span>他</span>
+        <span class="legend-item"><span class="legend-dot" data-level="1"></span>第1</span>
+        <span class="legend-item"><span class="legend-dot" data-level="2"></span>第2</span>
+        <span class="legend-item"><span class="legend-dot" data-level="3"></span>第3</span>
+        <span class="legend-item"><span class="legend-dot" data-level="4"></span>第4</span>
+        <span class="legend-item"><span class="legend-dot"></span>他</span>
       </div>
-      <div id="network-graph" class="network-graph"></div>
       <div id="network-resize-handle" class="network-resize-handle" title="ドラッグで高さを調整"></div>
     </section>
   </main>
@@ -664,9 +674,10 @@
       li.className = `char-item${small ? ' small' : ''}`;
       li.title = char;
       const imgUrl = getMjImageUrl(mjName);
-      const label = showLabel ? `<small style="font-size:0.6rem;color:var(--pico-muted-color)">${mjName}</small>` : '';
+      const label = showLabel ? `<small>${mjName}</small>` : '';
+      const imgClass = small ? 'mj-img mj-img-sm' : 'mj-img';
       li.innerHTML = imgUrl
-        ? `<img src="${imgUrl}" alt="${mjName}" class="mj-img" style="height:${small ? '1.5' : '2'}rem">${label}`
+        ? `<img src="${imgUrl}" alt="${mjName}" class="${imgClass}">${label}`
         : `<span class="char">${char}</span>${label}`;
       if (onClick) li.addEventListener('click', onClick);
       return li;
@@ -708,11 +719,11 @@
       tr.innerHTML = '<th>項目</th>';
       columns.forEach(col => {
         const th = document.createElement('th');
-        const imgClass = col.isPrimary ? 'mj-img mj-img-primary' : 'mj-img';
+        const imgClass = col.isPrimary ? 'mj-img mj-img-lg mj-img-primary' : 'mj-img mj-img-lg';
         th.innerHTML = col.imgUrl
-          ? `<img src="${col.imgUrl}" alt="${col.mjName}" class="${imgClass}" style="height:2.5rem;vertical-align:middle;"><div style="font-size:0.7rem">${col.mjName}</div>`
-          : `<div style="font-size:1.5rem">${col.displayChar}</div><div style="font-size:0.7rem">${col.mjName || ''}</div>`;
-        if (col.onClick) { th.style.cursor = 'pointer'; th.addEventListener('click', col.onClick); }
+          ? `<img src="${col.imgUrl}" alt="${col.mjName}" class="${imgClass}"><small>${col.mjName}</small>`
+          : `<div class="display-char">${col.displayChar}</div><small>${col.mjName || ''}</small>`;
+        if (col.onClick) { th.classList.add('clickable'); th.addEventListener('click', col.onClick); }
         if (col.copyText) {
           const btn = document.createElement('button');
           btn.className = 'copy-btn';
