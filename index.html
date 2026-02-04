@@ -160,6 +160,17 @@
     #main-empty { color: var(--pico-muted-color); font-style: italic; }
 
     /* === Network Graph === */
+    .graph-legend {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 0.7rem;
+      color: var(--pico-muted-color);
+      margin-top: 0.3rem;
+    }
+    .legend-title { font-weight: 600; }
+    .legend-item { display: flex; align-items: center; gap: 0.2rem; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
     .network-graph {
       margin-top: 0.5rem;
       width: 100%;
@@ -255,6 +266,14 @@
           <span id="hop-depth-value" class="hop-value">3</span>
         </label>
       </div>
+      <div class="graph-legend">
+        <span class="legend-title">JIS水準:</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#1976d2"></span>第1</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#ff9800"></span>第2</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#4caf50"></span>第3</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f44336"></span>第4</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#9e9e9e"></span>他</span>
+      </div>
       <div id="network-graph" class="network-graph"></div>
       <div id="network-resize-handle" class="network-resize-handle" title="ドラッグで高さを調整"></div>
     </section>
@@ -293,6 +312,15 @@
 
     const EDGE_COLORS = Object.fromEntries(SHRINK_FIELDS.map(f => [f.id, f.color]));
     const EDGE_LABELS = Object.fromEntries(SHRINK_FIELDS.map(f => [f.id, f.label]));
+
+    const JIS_LEVEL_COLORS = {
+      '1': '#1976d2',  // 第1水準: 青
+      '2': '#ff9800',  // 第2水準: オレンジ
+      '3': '#4caf50',  // 第3水準: 緑
+      '4': '#f44336',  // 第4水準: 赤
+      '': '#9e9e9e'    // それ以外: グレー
+    };
+    const getJisLevelColor = (level) => JIS_LEVEL_COLORS[level] || JIS_LEVEL_COLORS[''];
 
     const MJ_FIELDS = [
       { key: 'MJ文字図形名', label: 'MJ文字図形名' },
@@ -809,12 +837,13 @@
       for (const [ucs, mjList] of ucsToMjMap) {
         for (const mj of mjList) {
           const mjName = mj['MJ文字図形名'], isSearched = searchedMjSet.has(mjName);
+          const jisLevel = mj['X0213_level'] || '';
           const node = {
             id: mjName, ucs, ivs: mj['実装したMoji_JohoコレクションIVS'],
             displayChar: ivsToChar(mj['実装したMoji_JohoコレクションIVS']) || ucsToChar(mj['実装したUCS'] || ucs),
-            imgUrl: getMjImageUrl(mjName), isSearched,
+            imgUrl: getMjImageUrl(mjName), isSearched, jisLevel,
             hop: mjHops.get(mjName) ?? 0, parent: mjParent.get(mjName) ?? null,
-            color: isSearched ? CONFIG.colors.primary : CONFIG.colors.related,
+            color: getJisLevelColor(jisLevel),
             size: isSearched ? 48 : 32
           };
           nodes.push(node);
@@ -893,6 +922,11 @@
           .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
           .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
           .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); if (!d.isSearched) { d.fx = null; d.fy = null; } }));
+
+      // Glow effect for searched node
+      node.filter(d => d.isSearched).append('circle')
+        .attr('r', d => d.size / 2 + 8).attr('fill', 'none')
+        .attr('stroke', d => d.color).attr('stroke-width', 3).attr('stroke-opacity', 0.4);
 
       node.append('circle').attr('r', d => d.size / 2 + 3).attr('fill', '#fff')
         .attr('stroke', d => d.color).attr('stroke-width', d => d.isSearched ? 4 : 2);
