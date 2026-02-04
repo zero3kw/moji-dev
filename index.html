@@ -354,10 +354,14 @@
       { key: '読み(参考)', label: '読み' },
     ];
 
+    const MJ_FIELDS_BASE = MJ_FIELDS.filter(f => !f.computed);
+
     const ICONS = {
       copy: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy',
       check: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!'
     };
+
+    const CLICKABLE_FIELDS = new Set(['対応する互換漢字', '対応するUCS', '実装したUCS']);
 
     // ============================================================
     // DOM Elements
@@ -413,10 +417,7 @@
     const ucsToChar = (ucs) => ucs ? String.fromCodePoint(parseInt(ucs.replace('U+', ''), 16)) : null;
     const ivsToChar = (ivs) => {
       if (!ivs) return null;
-      const parts = ivs.includes('_')
-        ? ivs.split('_').map(p => parseInt(p, 16))
-        : ivs.split(' ').map(p => parseInt(p.replace('U+', ''), 16));
-      return String.fromCodePoint(...parts);
+      return String.fromCodePoint(...ivs.split('_').map(p => parseInt(p, 16)));
     };
 
     const getDisplayChar = (data, fallback = '?') =>
@@ -430,22 +431,19 @@
 
     const parseInput = (input) => {
       const chars = Array.from(input);
-      if (!chars.length) return { ucs: null, ivs: null };
+      if (!chars.length) return { ucs: null, ivs: null, char: '' };
       const base = chars[0].codePointAt(0);
       const ucs = `U+${base.toString(16).toUpperCase().padStart(4, '0')}`;
+      let ivs = null;
+      let char = chars[0];
       if (chars.length >= 2) {
         const vs = chars[1].codePointAt(0);
         if (vs >= 0xE0100 && vs <= 0xE01EF) {
-          return { ucs, ivs: `${base.toString(16).toUpperCase()}_${vs.toString(16).toUpperCase()}` };
+          ivs = `${base.toString(16).toUpperCase()}_${vs.toString(16).toUpperCase()}`;
+          char = chars.slice(0, 2).join('');
         }
       }
-      return { ucs, ivs: null };
-    };
-
-    const getCharFromInput = (input) => {
-      const { ivs } = parseInput(input);
-      const chars = Array.from(input);
-      return ivs ? chars.slice(0, 2).join('') : (chars[0] || '');
+      return { ucs, ivs, char };
     };
 
     const calcJisLevel = (x0213) => {
@@ -462,20 +460,21 @@
       return men === 2 ? '4' : '';
     };
 
+    const UNICODE_BLOCKS = [
+      [0x4E00, 0x9FFF, 'CJK統合漢字'], [0x3400, 0x4DBF, 'CJK統合漢字拡張A'],
+      [0x20000, 0x2A6DF, 'CJK統合漢字拡張B'], [0x2A700, 0x2B73F, 'CJK統合漢字拡張C'],
+      [0x2B740, 0x2B81F, 'CJK統合漢字拡張D'], [0x2B820, 0x2CEAF, 'CJK統合漢字拡張E'],
+      [0x2CEB0, 0x2EBEF, 'CJK統合漢字拡張F'], [0x30000, 0x3134F, 'CJK統合漢字拡張G'],
+      [0x31350, 0x323AF, 'CJK統合漢字拡張H'], [0xF900, 0xFAFF, 'CJK互換漢字'],
+      [0x2F800, 0x2FA1F, 'CJK互換漢字補助'], [0x2F00, 0x2FDF, '康煕部首'],
+      [0x2E80, 0x2EFF, 'CJK部首補助'], [0x3000, 0x303F, 'CJK記号・句読点']
+    ];
+
     const getUnicodeBlock = (ucs) => {
       if (!ucs) return '';
       const code = parseInt(ucs.replace('U+', ''), 16);
       if (isNaN(code)) return '';
-      const blocks = [
-        [0x4E00, 0x9FFF, 'CJK統合漢字'], [0x3400, 0x4DBF, 'CJK統合漢字拡張A'],
-        [0x20000, 0x2A6DF, 'CJK統合漢字拡張B'], [0x2A700, 0x2B73F, 'CJK統合漢字拡張C'],
-        [0x2B740, 0x2B81F, 'CJK統合漢字拡張D'], [0x2B820, 0x2CEAF, 'CJK統合漢字拡張E'],
-        [0x2CEB0, 0x2EBEF, 'CJK統合漢字拡張F'], [0x30000, 0x3134F, 'CJK統合漢字拡張G'],
-        [0x31350, 0x323AF, 'CJK統合漢字拡張H'], [0xF900, 0xFAFF, 'CJK互換漢字'],
-        [0x2F800, 0x2FA1F, 'CJK互換漢字補助'], [0x2F00, 0x2FDF, '康煕部首'],
-        [0x2E80, 0x2EFF, 'CJK部首補助'], [0x3000, 0x303F, 'CJK記号・句読点']
-      ];
-      return blocks.find(([min, max]) => code >= min && code <= max)?.[2] || '';
+      return UNICODE_BLOCKS.find(([min, max]) => code >= min && code <= max)?.[2] || '';
     };
 
     const formatRadical = (num) => {
@@ -518,11 +517,11 @@
     // ============================================================
     // Database
     // ============================================================
-    const SQL_COLUMNS = MJ_FIELDS.filter(f => !f.computed).map(f => `"${f.key}"`).join(', ') + ', "部首1(参考)"';
+    const SQL_COLUMNS = MJ_FIELDS_BASE.map(f => `"${f.key}"`).join(', ') + ', "部首1(参考)"';
 
     const mapQueryResult = (result) => result.toArray().map(row => {
       const data = {};
-      MJ_FIELDS.filter(f => !f.computed).forEach(f => data[f.key] = row[f.key]);
+      MJ_FIELDS_BASE.forEach(f => data[f.key] = row[f.key]);
       data.font = row.font;
       data['X0213_level'] = calcJisLevel(data['X0213']);
       data['UnicodeBlock'] = getUnicodeBlock(data['対応するUCS']);
@@ -625,17 +624,17 @@
     };
 
     const collectRelatedEdges = (mjNames) => {
-      const edges = [], ucsSet = new Set();
+      const edges = [];
       mjNames.forEach(mjName => {
         const entry = shrinkMap?.get(mjName);
         if (!entry) return;
         SHRINK_FIELDS.forEach(({ key, id }) => {
           (entry[key] || []).forEach(item => {
-            if (item.UCS) { ucsSet.add(item.UCS); edges.push({ from: mjName, to: item.UCS, type: id }); }
+            if (item.UCS) { edges.push({ from: mjName, to: item.UCS, type: id }); }
           });
         });
       });
-      return { edges, ucsNodes: [...ucsSet] };
+      return edges;
     };
 
     // ============================================================
@@ -692,14 +691,8 @@
       } catch (e) { console.error('Copy failed:', e); }
     };
 
-    const getCopyChar = (data, fallback) => {
-      const ivs = data['実装したMoji_JohoコレクションIVS'];
-      if (ivs) {
-        const [base, vs] = ivs.split('_');
-        return String.fromCodePoint(parseInt(base, 16), parseInt(vs, 16));
-      }
-      return getDisplayChar(data, fallback);
-    };
+    const getCopyChar = (data, fallback) =>
+      ivsToChar(data['実装したMoji_JohoコレクションIVS']) || getDisplayChar(data, fallback);
 
     const createClickableUcs = (value) => {
       const span = document.createElement('span');
@@ -722,7 +715,7 @@
         const imgClass = col.isPrimary ? 'mj-img mj-img-lg mj-img-primary' : 'mj-img mj-img-lg';
         th.innerHTML = col.imgUrl
           ? `<img src="${col.imgUrl}" alt="${col.mjName}" class="${imgClass}"><small>${col.mjName}</small>`
-          : `<div class="display-char">${col.displayChar}</div><small>${col.mjName || ''}</small>`;
+          : `<div class="display-char">${col.displayChar}</div><small>${col.mjName}</small>`;
         if (col.onClick) { th.classList.add('clickable'); th.addEventListener('click', col.onClick); }
         if (col.copyText) {
           const btn = document.createElement('button');
@@ -743,6 +736,26 @@
       tr.appendChild(td);
     };
 
+    const renderTableRows = ({ results, primaryIdx = null, matchMode = 'none', clickableFields = null }) => {
+      MJ_FIELDS.forEach(field => {
+        const values = results.map(d => formatValue(d[field.key]));
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<th>${field.label}</th>`;
+        const hasPrimary = matchMode === 'primary' && results.length > 1 && primaryIdx !== null && primaryIdx >= 0;
+        const primaryVal = hasPrimary ? values[primaryIdx] : null;
+        const isPair = matchMode === 'pair' && results.length >= 2;
+        const pairMatch = isPair ? values[0] === values[1] : null;
+        values.forEach(v => {
+          const clickable = clickableFields ? clickableFields.has(field.key) && v !== '-' && v.startsWith('U+') : false;
+          let matchClass = null;
+          if (hasPrimary && primaryVal !== null) matchClass = v === primaryVal ? 'match' : 'diff';
+          if (isPair) matchClass = pairMatch ? 'match' : 'diff';
+          appendValueCell(tr, v, { clickable, matchClass });
+        });
+        dom.variantsBody.appendChild(tr);
+      });
+    };
+
     const renderVariantsTable = (results, char, inputUcs, inputIvs = null, inputMjName = null) => {
       clearTable();
       const columns = results.map(data => {
@@ -757,20 +770,7 @@
       dom.variantsHeader.appendChild(createHeaderRow(columns));
 
       const primaryIdx = results.findIndex(d => isPrimaryResult(d, inputUcs, inputIvs, inputMjName));
-      const clickableFields = ['対応する互換漢字', '対応するUCS', '実装したUCS'];
-
-      MJ_FIELDS.forEach(field => {
-        const values = results.map(d => formatValue(d[field.key]));
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<th>${field.label}</th>`;
-        const primaryVal = primaryIdx >= 0 ? values[primaryIdx] : null;
-        values.forEach(v => {
-          const clickable = clickableFields.includes(field.key) && v !== '-' && v.startsWith('U+');
-          const matchClass = results.length > 1 && primaryVal !== null ? (v === primaryVal ? 'match' : 'diff') : null;
-          appendValueCell(tr, v, { clickable, matchClass });
-        });
-        dom.variantsBody.appendChild(tr);
-      });
+      renderTableRows({ results, primaryIdx, matchMode: 'primary', clickableFields: CLICKABLE_FIELDS });
     };
 
     const renderCompareTable = (results1, results2, char1, char2, ucs1, ivs1, ucs2, ivs2) => {
@@ -787,16 +787,7 @@
         onClick: () => setInputAndUpdate(getDisplayChar(data, char))
       }));
       dom.variantsHeader.appendChild(createHeaderRow(columns));
-
-      MJ_FIELDS.forEach(field => {
-        const [v1, v2] = [formatValue(data1[field.key]), formatValue(data2[field.key])];
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<th>${field.label}</th>`;
-        const matchClass = v1 === v2 ? 'match' : 'diff';
-        appendValueCell(tr, v1, { matchClass });
-        appendValueCell(tr, v2, { matchClass });
-        dom.variantsBody.appendChild(tr);
-      });
+      renderTableRows({ results: [data1, data2], matchMode: 'pair' });
     };
 
     const renderCandidates = (results, reading) => {
@@ -826,13 +817,13 @@
       if (!hasRelated) return;
 
       const [mjResults, ucsResults] = await Promise.all([
-        queryAllByMjNames([...new Set([...currentMjNames, ...relatedMjNames])]),
+        queryAllByMjNames(relatedMjNames),
         queryAllByUcsList(allUcs)
       ]);
       const allResults = [...new Map([...mjResults, ...ucsResults].map(r => [r['MJ文字図形名'], r])).values()];
       if (!allResults.length || typeof d3 === 'undefined') return;
 
-      const { edges: shrinkEdges } = collectRelatedEdges(allResults.map(r => r['MJ文字図形名']));
+      const shrinkEdges = collectRelatedEdges(allResults.map(r => r['MJ文字図形名']));
       const ucsToMjMap = new Map();
       allResults.forEach(r => {
         const ucs = r['対応するUCS'];
@@ -848,7 +839,7 @@
       for (const [ucs, mjList] of ucsToMjMap) {
         for (const mj of mjList) {
           const mjName = mj['MJ文字図形名'], isSearched = searchedMjSet.has(mjName);
-          const jisLevel = mj['X0213_level'] || '';
+          const jisLevel = mj['X0213_level'];
           const node = {
             id: mjName, ucs, ivs: mj['実装したMoji_JohoコレクションIVS'],
             displayChar: ivsToChar(mj['実装したMoji_JohoコレクションIVS']) || ucsToChar(mj['実装したUCS'] || ucs),
@@ -873,8 +864,8 @@
           seen.add(key);
           links.push({
             source: nodeMap.get(from), target: nodeMap.get(toMj), type,
-            color: EDGE_COLORS[type] || '#999',
-            hop: Math.max(nodeMap.get(from)?.hop ?? 0, nodeMap.get(toMj)?.hop ?? 0)
+            color: EDGE_COLORS[type],
+            hop: Math.max(nodeMap.get(from).hop, nodeMap.get(toMj).hop)
           });
         });
       });
@@ -918,10 +909,10 @@
 
       const { hopDelay, trailDuration } = CONFIG.animation;
 
-      // Draw links
+      // Draw links (marker-end is added later to prevent arrows showing before animation)
       const link = g.append('g').attr('class', 'links').selectAll('path').data(links).join('path')
         .attr('stroke', d => d.color).attr('stroke-width', 1).attr('stroke-opacity', 0)
-        .attr('fill', 'none').attr('marker-end', d => `url(#arrow-${d.type})`).attr('stroke-dasharray', '5,3');
+        .attr('fill', 'none').attr('stroke-dasharray', '5,3');
 
       const trailLayer = g.append('g').attr('class', 'trails');
 
@@ -987,7 +978,9 @@
         node.filter(d => d.id === n.id).transition().delay(delay + trailDuration * 0.8).duration(150).attr('opacity', 1);
       });
 
-      link.transition().delay(d => d.hop * hopDelay + trailDuration).duration(300).attr('stroke-opacity', 0.6);
+      link.transition().delay(d => d.hop * hopDelay + trailDuration).duration(300)
+        .attr('stroke-opacity', 0.6)
+        .attr('marker-end', d => `url(#arrow-${d.type})`);
       setTimeout(() => simulation.alpha(0).restart(), maxHop * hopDelay + trailDuration + 300);
 
       // Hover handlers
@@ -1037,7 +1030,7 @@
           const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (!dist) return '';
-          const targetR = (nodeMap.get(d.target.id)?.size / 2 + 8) || 20;
+          const targetR = nodeMap.get(d.target.id).size / 2 + 8;
           const ratio = (dist - targetR) / dist;
           return `M${d.source.x},${d.source.y}A${dist * 0.8},${dist * 0.8} 0 0,1 ${d.source.x + dx * ratio},${d.source.y + dy * ratio}`;
         });
@@ -1066,76 +1059,79 @@
       update();
     };
 
+    const getUrlQueryValue = (input) => {
+      const value = String(input || '').trim();
+      if (!value) return '';
+      if (isMjName(value) || isReading(value)) return value;
+      return parseInput(value).char;
+    };
+
     const updateUrl = (char, char2) => {
       const url = new URL(location.href);
-      char ? url.searchParams.set('q', char) : url.searchParams.delete('q');
-      compareMode && char2 ? url.searchParams.set('q2', char2) : url.searchParams.delete('q2');
+      const q = getUrlQueryValue(char);
+      const q2 = getUrlQueryValue(char2);
+      q ? url.searchParams.set('q', q) : url.searchParams.delete('q');
+      compareMode && q2 ? url.searchParams.set('q2', q2) : url.searchParams.delete('q2');
       history.replaceState(null, '', url);
     };
 
-    const update = async () => {
-      const [input, input2] = [dom.inputChar.value.trim(), dom.inputChar2.value.trim()];
-      resetSections();
+    const handleCompareMode = async (input, input2) => {
+      if (!compareMode) return false;
+      if (!input && !input2) { showEmpty('比較する文字を入力してください'); return true; }
+      if (!input || !input2) { showEmpty(input ? '比較する2つ目の文字を入力してください' : '比較する1つ目の文字を入力してください'); return true; }
 
-      // Compare mode
-      if (compareMode) {
-        if (!input && !input2) return showEmpty('比較する文字を入力してください');
-        if (!input || !input2) return showEmpty(input ? '比較する2つ目の文字を入力してください' : '比較する1つ目の文字を入力してください');
+      const [p1, p2] = [parseInput(input), parseInput(input2)];
+      const [r1, r2] = await Promise.all([queryByUcs(p1.ucs, p1.ivs), queryByUcs(p2.ucs, p2.ivs)]);
 
-        const [p1, p2] = [parseInput(input), parseInput(input2)];
-        const [c1, c2] = [getCharFromInput(input), getCharFromInput(input2)];
-        const [r1, r2] = await Promise.all([queryByUcs(p1.ucs, p1.ivs), queryByUcs(p2.ucs, p2.ivs)]);
-
-        if (!r1.length || !r2.length) {
-          return showEmpty(!r1.length && !r2.length ? '両方の文字がMJデータに見つかりません'
-            : !r1.length ? `${c1} (${p1.ucs}) はMJデータに見つかりません` : `${c2} (${p2.ucs}) はMJデータに見つかりません`);
-        }
-
-        dom.mainEmpty.hidden = true;
-        dom.variantsSection.hidden = false;
-        renderCompareTable(r1, r2, c1, c2, p1.ucs, p1.ivs, p2.ucs, p2.ivs);
-        [r1, r2].forEach((r, i) => {
-          const p = i ? p2 : p1, c = i ? c2 : c1;
-          const primary = r.find(d => isPrimaryResult(d, p.ucs, p.ivs, null)) || r[0];
-          addToHistory(c, primary?.['MJ文字図形名']);
-        });
-        trackSearch(`${c1} vs ${c2}`);
-        return;
+      if (!r1.length || !r2.length) {
+        const [c1, c2] = [p1.char, p2.char];
+        showEmpty(!r1.length && !r2.length ? '両方の文字がMJデータに見つかりません'
+          : !r1.length ? `${c1} (${p1.ucs}) はMJデータに見つかりません` : `${c2} (${p2.ucs}) はMJデータに見つかりません`);
+        return true;
       }
 
-      if (!input) return showEmpty('文字を入力してください');
+      dom.mainEmpty.hidden = true;
+      dom.variantsSection.hidden = false;
+      renderCompareTable(r1, r2, p1.char, p2.char, p1.ucs, p1.ivs, p2.ucs, p2.ivs);
+      [r1, r2].forEach((r, i) => {
+        const p = i ? p2 : p1;
+        const primary = r.find(d => isPrimaryResult(d, p.ucs, p.ivs, null)) || r[0];
+        addToHistory(p.char, primary?.['MJ文字図形名']);
+      });
+      trackSearch(`${p1.char} vs ${p2.char}`);
+      return true;
+    };
 
-      // MJ name search
-      if (isMjName(input)) {
-        const mjName = input.toUpperCase();
-        const results = await queryByMjName(mjName);
-        if (!results.length) return showEmpty(`${mjName} はMJデータに見つかりません`);
-        dom.mainEmpty.hidden = true;
-        dom.variantsSection.hidden = false;
-        renderVariantsTable(results, null, null, null, mjName);
-        await renderRelated(results, null, null, mjName);
-        trackSearch(mjName);
-        return;
-      }
+    const handleMjNameSearch = async (input) => {
+      if (!isMjName(input)) return false;
+      const mjName = input.toUpperCase();
+      const results = await queryByMjName(mjName);
+      if (!results.length) { showEmpty(`${mjName} はMJデータに見つかりません`); return true; }
+      dom.mainEmpty.hidden = true;
+      dom.variantsSection.hidden = false;
+      renderVariantsTable(results, null, null, null, mjName);
+      await renderRelated(results, null, null, mjName);
+      trackSearch(mjName);
+      return true;
+    };
 
-      // Reading search
-      if (isReading(input)) {
-        const results = await queryByReading(input);
-        if (!results.length) return showEmpty(`「${input}」に該当する文字が見つかりません`);
-        dom.mainEmpty.hidden = true;
-        dom.candidatesSection.hidden = false;
-        renderCandidates(results, input);
-        trackSearch(input);
-        return;
-      }
+    const handleReadingSearch = async (input) => {
+      if (!isReading(input)) return false;
+      const results = await queryByReading(input);
+      if (!results.length) { showEmpty(`「${input}」に該当する文字が見つかりません`); return true; }
+      dom.mainEmpty.hidden = true;
+      dom.candidatesSection.hidden = false;
+      renderCandidates(results, input);
+      trackSearch(input);
+      return true;
+    };
 
-      // Character search
-      const { ucs, ivs } = parseInput(input);
-      const char = getCharFromInput(input);
-      if (!char || !ucs) return showEmpty('文字を入力してください');
+    const handleCharSearch = async (input) => {
+      const { ucs, ivs, char } = parseInput(input);
+      if (!char || !ucs) { showEmpty('文字を入力してください'); return true; }
 
       const results = await queryByUcs(ucs, ivs);
-      if (!results.length) return showEmpty(`${char} (${ucs}) はMJデータに見つかりません`);
+      if (!results.length) { showEmpty(`${char} (${ucs}) はMJデータに見つかりません`); return true; }
 
       dom.mainEmpty.hidden = true;
       dom.variantsSection.hidden = false;
@@ -1144,6 +1140,18 @@
       addToHistory(char, primary?.['MJ文字図形名']);
       await renderRelated(results, ucs, ivs, null);
       trackSearch(char);
+      return true;
+    };
+
+    const update = async () => {
+      const [input, input2] = [dom.inputChar.value.trim(), dom.inputChar2.value.trim()];
+      resetSections();
+
+      if (await handleCompareMode(input, input2)) return;
+      if (!input) return showEmpty('文字を入力してください');
+      if (await handleMjNameSearch(input)) return;
+      if (await handleReadingSearch(input)) return;
+      await handleCharSearch(input);
     };
 
     const debouncedUpdate = debounce(update, CONFIG.debounceMs);
@@ -1155,7 +1163,7 @@
     dom.inputChar2.addEventListener('focus', () => lastFocusedInput = dom.inputChar2);
 
     const handleInput = () => {
-      updateUrl(getCharFromInput(dom.inputChar.value), getCharFromInput(dom.inputChar2.value));
+      updateUrl(dom.inputChar.value, dom.inputChar2.value);
       debouncedUpdate();
     };
     dom.inputChar.addEventListener('input', handleInput);
